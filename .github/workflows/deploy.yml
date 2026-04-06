@@ -34,7 +34,7 @@ jobs:
         username: ${{ secrets.SSH_USER }}
         key: ${{ secrets.SSH_KEY }}
         # On prend tout ce qui est dans dist pour être sûr
-        source: "dist/**/*"
+        source: "dist/**/browser/**/*"
         target: "/var/www/kikevent-admin"
         # On commence par 2 (pour ignorer 'dist' et le 'nom-du-projet')
-        strip_components: 2
+        strip_components: 4
