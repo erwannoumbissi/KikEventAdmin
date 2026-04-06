@@ -23,15 +23,18 @@ jobs:
     - name: Build project
       run: npm run build -- --configuration production
 
+    # ÉTAPE DE DEBUG : Pour voir où sont tes fichiers
+    - name: Check build output
+      run: find dist -maxdepth 4
+
     - name: Deploy to VPS via SCP
       uses: appleboy/scp-action@master
       with:
         host: ${{ secrets.SSH_HOST }}
         username: ${{ secrets.SSH_USER }}
         key: ${{ secrets.SSH_KEY }}
-        # Cette syntaxe cherche récursivement les fichiers dans le dossier dist
-        source: "dist/**/browser/**/*"
+        # On prend tout ce qui est dans dist pour être sûr
+        source: "dist/**/*"
         target: "/var/www/kikevent-admin"
-        # On utilise 3 ou 4 selon ta structure. Testons avec 3 pour commencer 
-        # si ton dossier est dist/KikEventAdmin/browser
-        strip_components: 3
+        # On commence par 2 (pour ignorer 'dist' et le 'nom-du-projet')
+        strip_components: 2
