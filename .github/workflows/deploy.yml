@@ -2,7 +2,7 @@ name: Deploy KikEventAdmin to VPS
 
 on:
   push:
-    branches: [ main ] # Se déclenche dès que tu push sur la branche main
+    branches: [ main ]
 
 jobs:
   build-and-deploy:
@@ -15,7 +15,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '20' # Version standard pour Angular récent
+        node-version: '20'
 
     - name: Install dependencies
       run: npm install
@@ -29,8 +29,7 @@ jobs:
         host: ${{ secrets.SSH_HOST }}
         username: ${{ secrets.SSH_USER }}
         key: ${{ secrets.SSH_KEY }}
-        # ATTENTION : Vérifie bien le nom exact du dossier dans 'dist/' 
-        # (Souvent c'est le "name" dans ton package.json)
-        source: "dist/kik-event-admin/browser/*"
+ 
+        source: "dist/KikEventAdmin/browser/*"
         target: "/var/www/kikevent-admin"
-        strip_components: 3 # Retire 'dist/kik-event-admin/browser' du chemin de destination
+        strip_components: 3
