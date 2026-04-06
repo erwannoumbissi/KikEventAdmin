@@ -15,7 +15,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '20'
+        node-version: '22'
 
     - name: Install dependencies
       run: npm install
@@ -23,7 +23,7 @@ jobs:
     - name: Build project
       run: npm run build -- --configuration production
 
-    # ÉTAPE DE DEBUG : Pour voir où sont tes fichiers
+    # Cette étape nous confirmera l'emplacement exact en cas d'erreur
     - name: Check build output
       run: find dist -maxdepth 4
 
@@ -33,8 +33,9 @@ jobs:
         host: ${{ secrets.SSH_HOST }}
         username: ${{ secrets.SSH_USER }}
         key: ${{ secrets.SSH_KEY }}
-        # On prend tout ce qui est dans dist pour être sûr
-        source: "dist/**/browser/**/*"
+        # On utilise une étoile simple pour capturer tout le contenu du build
+        source: "dist/**/*"
         target: "/var/www/kikevent-admin"
-        # On commence par 2 (pour ignorer 'dist' et le 'nom-du-projet')
-        strip_components: 4
+        # On utilise 3 pour retirer 'dist/nom-du-projet' et laisser le contenu de 'browser'
+        # Si 'browser' apparaît encore sur le VPS, on passera à 4 au prochain coup.
+        strip_components: 3
