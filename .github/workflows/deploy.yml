@@ -29,7 +29,9 @@ jobs:
         host: ${{ secrets.SSH_HOST }}
         username: ${{ secrets.SSH_USER }}
         key: ${{ secrets.SSH_KEY }}
- 
-        source: "dist/KikEventAdmin/browser/*"
+        # Cette syntaxe cherche récursivement les fichiers dans le dossier dist
+        source: "dist/**/browser/**/*"
         target: "/var/www/kikevent-admin"
+        # On utilise 3 ou 4 selon ta structure. Testons avec 3 pour commencer 
+        # si ton dossier est dist/KikEventAdmin/browser
         strip_components: 3
