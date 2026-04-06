@@ -10,7 +10,7 @@ export class UserHelper {
    */
   static isConnect(): boolean {
     const user = LocalStorage.getItem('KIKEVENTADMIN_space_user');
-    return user !== null && user !== undefined;
+    return !!user;
   }
   /**
    * Remove user data to the local DB

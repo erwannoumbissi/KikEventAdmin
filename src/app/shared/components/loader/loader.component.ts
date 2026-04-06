@@ -1,6 +1,6 @@
-import { Component } from '@angular/core';
-import { LoaderService } from './service/loader.service';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { LoaderService } from './service/loader.service';
 
 @Component({
   selector: 'app-loader',
@@ -10,5 +10,5 @@ import { CommonModule } from '@angular/common';
   styleUrls: ['./loader.component.scss']
 })
 export class LoaderComponent {
-  constructor(public loaderService: LoaderService) {}
+  loaderSvc = inject(LoaderService);
 }

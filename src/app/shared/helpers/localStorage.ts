@@ -37,7 +37,11 @@ export class LocalStorage {
   static getItem(label: string): any {
     let data = window.localStorage.getItem(label);
     if (data != null) {
-      data = this.decrypt(data);
+      try {
+        data = this.decrypt(data);
+      } catch {
+        data = null;
+      }
     }
     return data;
   }

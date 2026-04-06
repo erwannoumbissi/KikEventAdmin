@@ -1,22 +1,16 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { CanActivate, ActivatedRouteSnapshot, Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class PermissionGuard implements CanActivate {
-  constructor(private auth: AuthService, private router: Router) {}
+  private auth   = inject(AuthService);
+  private router = inject(Router);
 
   canActivate(route: ActivatedRouteSnapshot): boolean {
-    const expectedPermissions = route.data['permissions'] as string[] || [];
-
-    if (!expectedPermissions.length) return true; // pas de permission requise
-
-    const hasPermission = expectedPermissions.some(p => this.auth.hasPermission(p));
-    if (hasPermission) return true;
-
-    console.warn('PermissionGuard blocked access, expected permissions:', expectedPermissions);
+    const expected = (route.data['permissions'] as string[]) ?? [];
+    if (!expected.length) { return true; }
+    if (expected.some(p => this.auth.hasPermission(p))) { return true; }
     this.router.navigate(['/unauthorized']);
     return false;
   }

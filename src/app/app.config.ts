@@ -1,12 +1,18 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners, provideZoneChangeDetection } from '@angular/core';
-import { provideRouter } from '@angular/router';
-
+import { provideRouter, withViewTransitions } from '@angular/router';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { routes } from './app.routes';
+import { appInterceptor } from './core/services/app.interceptor';
+import { mockHttpInterceptor } from './core/services/mock-http.interceptor';
 
+// IMPORTANT : appInterceptor DOIT être en premier pour que le loader/finalize
+// s'exécute sur toutes les requêtes, y compris celles interceptées par le mock.
+// mockHttpInterceptor en second intercepte avant next() mais après le loader.
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideZoneChangeDetection({ eventCoalescing: true }),
-    provideRouter(routes)
+    provideRouter(routes, withViewTransitions()),
+    provideHttpClient(withInterceptors([appInterceptor, mockHttpInterceptor])),
   ]
 };

@@ -1,0 +1,7 @@
+<div class="ke-toast-wrap">
+  <div class="ke-toast" *ngFor="let t of svc.getToasts()" [style.background]="svc.getCfg(t.type).bg">
+    <span>{{ svc.getCfg(t.type).icon }}</span>
+    <span class="ke-toast-msg">{{ t.message }}</span>
+    <button (click)="svc.remove(t)">✕</button>
+  </div>
+</div>

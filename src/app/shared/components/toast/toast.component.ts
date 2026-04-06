@@ -1,6 +1,6 @@
-import { Component, HostListener } from '@angular/core';
-import { ToastService } from './service/toast.service';
+import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ToastService } from './service/toast.service';
 
 @Component({
   selector: 'app-toast',
@@ -10,7 +10,5 @@ import { CommonModule } from '@angular/common';
   styleUrls: ['./toast.component.scss']
 })
 export class ToastComponent {
-  constructor(public toastService: ToastService) {}
-
- 
+  constructor(public svc: ToastService) {}
 }

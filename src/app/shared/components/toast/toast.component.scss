@@ -1,33 +1,5 @@
-@keyframes slide-in {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-@keyframes slide-out {
-  from {
-    opacity: 1;
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-}
-
-.animate-slide-in {
-  animation: slide-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-}
-
-.animate-slide-out {
-  animation: slide-out 0.3s ease-in forwards;
-}
-
-.toast-message {
-  transition: all 0.2s ease;
-}
+.ke-toast-wrap { position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:10px;max-width:380px; }
+.ke-toast      { display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:10px;color:#fff;font-size:13px;font-weight:500;box-shadow:0 4px 16px rgba(0,0,0,.15);animation:ke-si .2s ease; }
+.ke-toast-msg  { flex:1;line-height:1.4; }
+.ke-toast button { background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer; }
+@keyframes ke-si { from{opacity:0;transform:translateX(16px)} to{opacity:1;transform:translateX(0)} }

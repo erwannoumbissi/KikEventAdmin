@@ -1,0 +1,89 @@
+<div class="page-wrap">
+  <div class="page-header"><div><h1>Bureau des Validations</h1><p>Traitement des demandes d'onboarding Organisateurs & Contrôleurs</p></div></div>
+  <div class="ke-tabs">
+    <div *ngFor="let t of tabs" class="tab" [class.active]="activeTab===t.key" (click)="setTab(t)">
+      {{ t.label }}<span *ngIf="t.count>0" style="margin-left:6px;background:#EF9F27;color:#fff;font-size:10px;padding:1px 5px;border-radius:10px">{{ t.count }}</span>
+    </div>
+  </div>
+  <div *ngIf="loading" class="empty-state"><p>Chargement…</p></div>
+  <div *ngIf="!loading && requests.length===0" class="empty-state"><p>Aucune demande {{ activeTab==='PENDING' ? 'en attente' : activeTab==='APPROVED' ? 'approuvée' : 'rejetée' }}.</p></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px" *ngIf="!loading && requests.length>0">
+    <div class="card" *ngFor="let r of requests" (click)="openDetail(r)" style="cursor:pointer;transition:box-shadow .15s" onmouseenter="this.style.boxShadow='0 4px 16px rgba(91,76,245,.15)'" onmouseleave="this.style.boxShadow=''">
+      <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:12px">
+        <div style="width:38px;height:38px;border-radius:50%;background:#EEEDFE;color:#5B4CF5;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">{{ r.userName.substring(0,2).toUpperCase() }}</div>
+        <div style="flex:1"><p style="font-size:14px;font-weight:600;margin:0">{{ r.userName }}</p><p style="font-size:12px;color:#9CA3AF;margin:0">{{ r.userEmail }}</p></div>
+        <span class="badge" [ngClass]="{'badge-warning':r.statut==='PENDING','badge-success':r.statut==='APPROVED','badge-danger':r.statut==='REJECTED'}">
+          {{ r.statut==='PENDING'?'En attente':r.statut==='APPROVED'?'Approuvé':'Rejeté' }}
+        </span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <span class="role-pill {{ r.roleDemande }}">{{ r.roleDemande==='ORGANIZER'?'Organisateur':'Contrôleur' }}</span>
+        <span *ngIf="r.nomOrganisation" style="font-size:12px;color:#9CA3AF">{{ r.nomOrganisation }}</span>
+      </div>
+      <p style="font-size:12px;color:#9CA3AF">📄 {{ r.documents.length }} document(s) · {{ r.createdAt | date:'dd/MM/yyyy' }}</p>
+      <div *ngIf="r.motifRejet" style="background:#FCEBEB;color:#A32D2D;font-size:11px;padding:8px;border-radius:6px;margin-top:8px">{{ r.motifRejet }}</div>
+      <div *ngIf="r.statut==='PENDING'" style="display:flex;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid rgba(0,0,0,.06)">
+        <button class="btn btn-sm btn-success" (click)="$event.stopPropagation();approve(r)">✓ Approuver</button>
+        <button class="btn btn-sm btn-danger" (click)="$event.stopPropagation();openReject(r)">✕ Rejeter</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Panel de détail -->
+<div *ngIf="showPanel" style="position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:200;display:flex;justify-content:flex-end" (click)="showPanel=false">
+  <div style="width:540px;max-width:95vw;background:#fff;height:100vh;overflow-y:auto;padding:28px;display:flex;flex-direction:column;gap:20px;box-shadow:-4px 0 30px rgba(0,0,0,.12)" (click)="$event.stopPropagation()" *ngIf="selected">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between">
+      <div><h2 style="font-size:17px;font-weight:700">{{ selected.userName }}</h2>
+        <p style="font-size:12px;color:#9CA3AF">{{ selected.roleDemande==='ORGANIZER'?'Demande Organisateur':'Demande Contrôleur' }}</p></div>
+      <button class="btn btn-ghost btn-sm" (click)="showPanel=false">✕ Fermer</button>
+    </div>
+    <div>
+      <p style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#9CA3AF;margin-bottom:12px">Informations</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div><p style="font-size:11px;color:#9CA3AF">Email</p><p style="font-size:13px;font-weight:500">{{ selected.userEmail }}</p></div>
+        <div><p style="font-size:11px;color:#9CA3AF">Téléphone</p><p style="font-size:13px;font-weight:500">{{ selected.userPhone ?? 'N/A' }}</p></div>
+        <div *ngIf="selected.nomOrganisation"><p style="font-size:11px;color:#9CA3AF">Organisation</p><p style="font-size:13px;font-weight:500">{{ selected.nomOrganisation }}</p></div>
+        <div><p style="font-size:11px;color:#9CA3AF">Date soumission</p><p style="font-size:13px;font-weight:500">{{ selected.createdAt | date:'dd/MM/yyyy' }}</p></div>
+      </div>
+    </div>
+    <div>
+      <p style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#9CA3AF;margin-bottom:12px">Documents ({{ selected.documents.length }})</p>
+      <div *ngIf="selected.documents.length===0" style="color:#9CA3AF;font-size:13px">Aucun document</div>
+      <div *ngFor="let d of selected.documents" style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:#F5F5F7;border-radius:10px;margin-bottom:8px">
+        <span style="font-size:20px">📄</span>
+        <div style="flex:1"><p style="font-size:13px;font-weight:500;margin:0">{{ d.nom }}</p><p style="font-size:11px;color:#9CA3AF;margin:0">{{ docLabel(d.type) }} · {{ d.uploadedAt | date:'dd/MM/yyyy' }}</p></div>
+        <a [href]="d.url" target="_blank" class="btn btn-sm btn-ghost">Voir</a>
+      </div>
+    </div>
+    <div *ngIf="selected.motifRejet" style="background:#FCEBEB;border-radius:10px;padding:12px 14px">
+      <p style="font-size:11px;font-weight:600;color:#A32D2D;margin-bottom:4px">MOTIF DE REJET</p>
+      <p style="font-size:13px;color:#A32D2D">{{ selected.motifRejet }}</p>
+    </div>
+    <div *ngIf="selected.statut==='PENDING'" style="margin-top:auto;padding-top:20px;border-top:1px solid rgba(0,0,0,.08)">
+      <div style="background:#E6F1FB;border-radius:10px;padding:10px 12px;font-size:12px;color:#185FA5;margin-bottom:12px">
+        ℹ️ Une notification sera automatiquement envoyée au demandeur sur l'application mobile.
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn btn-danger" (click)="openReject(selected)">✕ Rejeter la demande</button>
+        <button class="btn btn-success" (click)="approve(selected)">✓ Approuver la demande</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Rejet -->
+<div class="modal-overlay" *ngIf="showReject">
+  <div class="modal-box">
+    <div class="modal-header"><h2>Rejeter la demande</h2><button class="modal-close" (click)="showReject=false">✕</button></div>
+    <p style="font-size:13px;color:#6B7280;margin-bottom:16px">Le motif sera envoyé en notification push sur le mobile de <strong>{{ rejectTarget?.userName }}</strong>.</p>
+    <div class="form-group"><label>Motif du rejet *</label>
+      <textarea [(ngModel)]="rejectMotif" rows="4" placeholder="Ex: Documents invalides ou expirés. Veuillez soumettre une CNI valide…"></textarea>
+      <span style="font-size:11px;color:#9CA3AF">Ce message sera reçu sur le mobile du demandeur.</span>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" (click)="showReject=false">Annuler</button>
+      <button class="btn btn-danger" (click)="confirmReject()" [disabled]="!rejectMotif.trim()">Confirmer le rejet</button>
+    </div>
+  </div>
+</div>

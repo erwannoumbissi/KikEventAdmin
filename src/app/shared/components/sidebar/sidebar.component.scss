@@ -1,0 +1,22 @@
+.sidebar{width:230px;height:100vh;background:#fff;border-right:1px solid rgba(0,0,0,.08);display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:100;overflow-y:auto}
+.sb-logo{display:flex;align-items:center;gap:8px;padding:18px 16px;border-bottom:1px solid rgba(0,0,0,.08)}
+.sb-icon{width:30px;height:30px;background:#5B4CF5;border-radius:8px;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.sb-name{font-size:15px;font-weight:700;color:#1A1A2E}
+.sb-badge{font-size:10px;font-weight:600;background:#EEEDFE;color:#5B4CF5;padding:2px 7px;border-radius:10px;margin-left:auto}
+.sb-nav{flex:1;padding:12px 10px;display:flex;flex-direction:column;gap:2px}
+.sb-section{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#9CA3AF;padding:10px 8px 4px;margin-top:4px}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;color:#6B7280;font-size:13px;font-weight:500;cursor:pointer;text-decoration:none;transition:background .12s,color .12s}
+.sb-item:hover{background:#F5F5F7;color:#1A1A2E}
+.sb-item.active{background:#EEEDFE;color:#5B4CF5}
+.sb-iicon{width:18px;height:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;opacity:.65}
+.sb-item.active .sb-iicon{opacity:1}
+.sb-label{flex:1}
+.sb-badge-dot{background:#E24B4A;color:#fff;font-size:10px;font-weight:600;padding:1px 5px;border-radius:10px;min-width:18px;text-align:center}
+.sb-footer{padding:12px 10px;border-top:1px solid rgba(0,0,0,.08);flex-shrink:0}
+.sb-profile{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:#F5F5F7}
+.sb-avatar{width:30px;height:30px;border-radius:50%;background:#5B4CF5;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sb-info{flex:1;min-width:0}
+.sb-uname{font-size:12px;font-weight:600;color:#1A1A2E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0}
+.sb-urole{font-size:10px;color:#5B4CF5;margin:0}
+.sb-logout{background:none;border:none;color:#9CA3AF;padding:4px;border-radius:6px;cursor:pointer}
+.sb-logout:hover{color:#E24B4A}

@@ -1,0 +1,92 @@
+<div class="page-wrap">
+  <div class="page-header"><div><h1>Annuaire des Comptes</h1><p>Gestion des utilisateurs de la plateforme</p></div></div>
+  <div class="filter-bar">
+    <div class="search-wrap">
+      <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" placeholder="Rechercher…" [(ngModel)]="searchTerm" (input)="page=0;load()">
+    </div>
+    <select [(ngModel)]="selectedRole" (change)="page=0;load()">
+      <option value="">Tous les rôles</option>
+      <option value="ADMIN">Admin</option>
+      <option value="ORGANIZER">Organisateur</option>
+      <option value="CONTROLER">Contrôleur</option>
+      <option value="PARTICIPANT">Participant</option>
+    </select>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div *ngIf="loading" class="loading-row">Chargement…</div>
+    <table class="ke-table" *ngIf="!loading">
+      <thead><tr><th>#</th><th>Utilisateur</th><th>Email</th><th>Rôle</th><th>Statut</th><th>Inscrit le</th><th>Actions</th></tr></thead>
+      <tbody>
+        <tr *ngFor="let u of users; let i = index">
+          <td style="color:#9CA3AF">{{ page*size+i+1 }}</td>
+          <td><div style="display:flex;align-items:center;gap:10px">
+            <div style="width:32px;height:32px;border-radius:50%;background:#EEEDFE;color:#5B4CF5;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">{{ u.username.substring(0,2).toUpperCase() }}</div>
+            {{ u.username }}
+          </div></td>
+          <td>{{ u.email }}</td>
+          <td><span class="role-pill {{ getRoleName(u) }}">{{ getRoleName(u) }}</span></td>
+          <td><span class="badge" [ngClass]="u.enabled ? 'badge-success' : 'badge-danger'">{{ u.enabled ? 'Actif' : 'Suspendu' }}</span></td>
+          <td style="font-size:12px;color:#9CA3AF">{{ u.createdAt | date:'dd/MM/yyyy' }}</td>
+          <td>
+            <div class="action-btns">
+              <button *ngIf="u.enabled" class="btn btn-sm btn-danger" (click)="openSuspend(u)">Suspendre</button>
+              <button *ngIf="!u.enabled" class="btn btn-sm btn-success" (click)="confirmActivate(u)">Réactiver</button>
+              <button class="btn btn-sm btn-ghost" (click)="openReset(u)">Reset</button>
+              <button class="btn btn-sm btn-ghost" (click)="openRole(u)">Rôle</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="pagination" style="padding:12px 16px">
+      <span>{{ users.length }} / {{ total }} résultats</span>
+      <div class="page-btns">
+        <button (click)="page=page-1;load()" [disabled]="page===0">‹</button>
+        <button class="active">{{ page+1 }}</button>
+        <button (click)="page=page+1;load()" [disabled]="(page+1)*size>=total">›</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" *ngIf="showSuspend">
+  <div class="modal-box">
+    <div class="modal-header"><h2>Suspendre le compte</h2><button class="modal-close" (click)="showSuspend=false">✕</button></div>
+    <p style="font-size:13px;color:#6B7280;margin-bottom:16px">Compte de <strong>{{ selectedUser?.username }}</strong>. Un email de notification sera envoyé avec le motif.</p>
+    <div class="form-group"><label>Motif <span style="color:#E24B4A">*</span></label>
+      <textarea [(ngModel)]="suspendMotif" rows="3" placeholder="Ex: Activité frauduleuse détectée…"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" (click)="showSuspend=false">Annuler</button>
+      <button class="btn btn-danger" (click)="confirmSuspend()" [disabled]="!suspendMotif.trim()">Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" *ngIf="showReset">
+  <div class="modal-box">
+    <div class="modal-header"><h2>Réinitialiser l'accès</h2><button class="modal-close" (click)="showReset=false">✕</button></div>
+    <p style="font-size:13px;color:#6B7280;margin-bottom:20px">Un email de réinitialisation sera envoyé à <strong>{{ selectedUser?.email }}</strong>.</p>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" (click)="showReset=false">Annuler</button>
+      <button class="btn btn-primary" (click)="confirmReset()">Envoyer</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" *ngIf="showRole">
+  <div class="modal-box">
+    <div class="modal-header"><h2>Changer le rôle</h2><button class="modal-close" (click)="showRole=false">✕</button></div>
+    <div class="form-group" style="margin-bottom:0"><label>Nouveau rôle</label>
+      <select [(ngModel)]="newRole">
+        <option value="ADMIN">Administrateur</option><option value="ORGANIZER">Organisateur</option>
+        <option value="CONTROLER">Contrôleur</option><option value="PARTICIPANT">Participant</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" (click)="showRole=false">Annuler</button>
+      <button class="btn btn-primary" (click)="confirmRole()">Confirmer</button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,31 @@
+<aside class="sidebar">
+  <div class="sb-logo">
+    <div class="sb-icon">KE</div>
+    <span class="sb-name">KikEvent</span>
+    <span class="sb-badge">Admin</span>
+  </div>
+  <nav class="sb-nav">
+    <ng-container *ngFor="let item of navItems">
+      <div *ngIf="item.section" class="sb-section">{{ item.section }}</div>
+      <a [routerLink]="item.route" routerLinkActive="active" class="sb-item">
+        <span class="sb-iicon" [innerHTML]="getIcon(item.icon)"></span>
+        <span class="sb-label">{{ item.label }}</span>
+        <span *ngIf="item.badge > 0" class="sb-badge-dot">{{ item.badge }}</span>
+      </a>
+    </ng-container>
+  </nav>
+  <div class="sb-footer">
+    <div class="sb-profile">
+      <div class="sb-avatar">{{ getInitials() }}</div>
+      <div class="sb-info">
+        <p class="sb-uname">{{ adminName }}</p>
+        <p class="sb-urole">Super Admin</p>
+      </div>
+      <button class="sb-logout" (click)="logout()" title="Déconnexion">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</aside>
