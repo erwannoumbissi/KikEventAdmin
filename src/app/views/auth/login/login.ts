@@ -44,7 +44,7 @@ export class LoginComponent {
     this.loading = true; this.errorMsg = '';
     (this.auth.login(this.form.value) as any).subscribe({
       next: (res: LoginReturnType) => {
-        if (res?.code === 200) {
+        if (res?.status === 200) {
           // FIX #2 : clé unifiée TOKEN_KEY au lieu de 'jbis_space_token'
           LocalStorage.setItem(TOKEN_KEY, res.data.access_token);
           UserHelper.saveUser(res.data.user, res.data.access_token);

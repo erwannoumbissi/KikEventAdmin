@@ -20,16 +20,17 @@ export class SidebarComponent implements OnInit {
   adminEmail = '';
 
   navItems = [
-    { section: 'Principal',  label: 'Dashboard',        route: '/dashboard',      icon: 'grid',        badge: 0 },
-    { section: '',           label: 'Annuaire comptes',  route: '/users',          icon: 'users',       badge: 0 },
-    { section: '',           label: 'Validations',       route: '/validations',    icon: 'check-circle',badge: 5 },
-    { section: 'Gestion',    label: "Événements",        route: '/events',         icon: 'calendar',    badge: 0 },
-    { section: '',           label: 'Billetterie',       route: '/billing',        icon: 'ticket',      badge: 0 },
-    { section: 'Finance',    label: 'Paiements',         route: '/payments',       icon: 'credit-card', badge: 0 },
-    { section: '',           label: 'Statistiques',      route: '/stats',          icon: 'bar-chart',   badge: 0 },
-    { section: "Système",    label: 'Notifications',     route: '/notifications',  icon: 'bell',        badge: 0 },
-    { section: '',           label: 'Config Freemium',   route: '/freemium',       icon: 'star',        badge: 0 },
-    { section: '',           label: "Paramètres",        route: '/settings',       icon: 'settings',    badge: 0 },
+    { section: 'Principal',  label: 'Dashboard',             route: '/dashboard',            icon: 'grid',         badge: 0 },
+    { section: '',           label: 'Annuaire comptes',      route: '/users',                icon: 'users',        badge: 0 },
+    { section: '',           label: 'Demandes organisateurs', route: '/organizer-requests',  icon: 'file-text',    badge: 0 },
+    { section: '',           label: 'Validations',           route: '/validations',          icon: 'check-circle', badge: 5 },
+    { section: 'Gestion',    label: "Événements",            route: '/events',               icon: 'calendar',     badge: 0 },
+    { section: '',           label: 'Billetterie',           route: '/billing',              icon: 'ticket',       badge: 0 },
+    { section: 'Finance',    label: 'Paiements',             route: '/payments',             icon: 'credit-card',  badge: 0 },
+    { section: '',           label: 'Statistiques',          route: '/stats',                icon: 'bar-chart',    badge: 0 },
+    { section: "Système",    label: 'Notifications',         route: '/notifications',        icon: 'bell',         badge: 0 },
+    { section: '',           label: 'Config Freemium',       route: '/freemium',             icon: 'star',         badge: 0 },
+    { section: '',           label: "Paramètres",            route: '/settings',             icon: 'settings',     badge: 0 },
   ];
 
   ngOnInit(): void {
@@ -48,6 +49,7 @@ export class SidebarComponent implements OnInit {
     const icons: Record<string, string> = {
       grid: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>`,
       users: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>`,
+      'file-text': `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="13" x2="8" y2="13"/><line x1="12" y1="17" x2="8" y2="17"/></svg>`,
       'check-circle': `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`,
       calendar: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`,
       ticket: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 9a3 3 0 010-6h20a3 3 0 010 6H2z"/><path d="M2 12h20M5 21h14a3 3 0 003-3v-9"/></svg>`,

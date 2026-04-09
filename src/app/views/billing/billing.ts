@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminService } from '../../core/services/admin.service';
 import { ToastService } from '../../shared/components/toast/service/toast.service';
+import ResponseType from '../../core/models/api_resp.model';
 import { Billet } from '../../core/models/kikevent.models';
 @Component({ selector: 'app-billing', standalone: true, imports: [CommonModule, FormsModule], templateUrl: './billing.html', styleUrls: ['./billing.scss'] })
 export class BillingComponent implements OnInit {
@@ -15,7 +16,7 @@ export class BillingComponent implements OnInit {
     this.loading = true;
     const s = this.activeTab === 'ALL' ? '' : this.activeTab;
     this.svc.getBillets(s).subscribe({
-      next: r => { this.billets = r.data?.content ?? r.data ?? this.mock(); },
+      next: (r: ResponseType<any>) => { this.billets = r.data?.content ?? r.data ?? this.mock(); },
       error: () => { this.billets = this.mock(); this.loading = false; },
       complete: () => { this.loading = false; }
     });

@@ -2,6 +2,7 @@ import { Component, inject, OnInit, AfterViewInit, ElementRef, ViewChild } from 
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { AdminService } from '../../core/services/admin.service';
+import ResponseType from '../../core/models/api_resp.model';
 import { DashboardStats, ActivityItem } from '../../core/models/kikevent.models';
 
 declare const Chart: any;
@@ -25,7 +26,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
 
   ngOnInit(): void {
     this.svc.getDashboardStats().subscribe({
-      next: r => { this.stats = r.data ?? this.def(); },
+      next: (r: ResponseType<any>) => { this.stats = r.data ?? this.def(); },
       error: () => { this.stats = this.def(); },
       complete: () => { this.loading = false; if (this.chartsReady) { this.render(); } }
     });

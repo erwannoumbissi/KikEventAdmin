@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminService } from '../../core/services/admin.service';
 import { ToastService } from '../../shared/components/toast/service/toast.service';
+import ResponseType from '../../core/models/api_resp.model';
 import { KikNotification } from '../../core/models/kikevent.models';
 @Component({ selector: 'app-notifications', standalone: true, imports: [CommonModule, FormsModule], templateUrl: './notifications.html', styleUrls: ['./notifications.scss'] })
 export class NotificationsComponent implements OnInit {
@@ -14,7 +15,7 @@ export class NotificationsComponent implements OnInit {
   load(): void {
     this.loading = true;
     this.svc.getNotifications().subscribe({
-      next: r => { this.notifs = r.data?.content ?? r.data ?? this.mock(); },
+      next: (r: ResponseType<any>) => { this.notifs = r.data?.content ?? r.data ?? this.mock(); },
       error: () => { this.notifs = this.mock(); this.loading = false; },
       complete: () => { this.loading = false; }
     });

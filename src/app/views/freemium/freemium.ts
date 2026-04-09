@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminService } from '../../core/services/admin.service';
 import { ToastService } from '../../shared/components/toast/service/toast.service';
+import ResponseType from '../../core/models/api_resp.model';
 import { FreemiumConfig } from '../../core/models/kikevent.models';
 @Component({ selector: 'app-freemium', standalone: true, imports: [CommonModule, FormsModule], templateUrl: './freemium.html', styleUrls: ['./freemium.scss'] })
 export class FreemiumComponent implements OnInit {
@@ -32,7 +33,7 @@ export class FreemiumComponent implements OnInit {
   load(): void {
     this.loading = true;
     this.svc.getFreemiumConfig().subscribe({
-      next: r => { this.cfg = r.data ?? this.def(); },
+      next: (r: ResponseType<any>) => { this.cfg = r.data ?? this.def(); },
       error: () => { this.cfg = this.def(); this.loading = false; },
       complete: () => { this.loading = false; }
     });
@@ -43,7 +44,7 @@ export class FreemiumComponent implements OnInit {
   save(): void {
     this.saving = true;
     this.svc.updateFreemiumConfig(this.cfg).subscribe({
-      next: r => { this.cfg = r.data ?? this.cfg; this.dirty = false; this.toast.show('success', 'Configuration mise à jour !'); },
+      next: (r: ResponseType<any>) => { this.cfg = r.data ?? this.cfg; this.dirty = false; this.toast.show('success', 'Configuration mise à jour !'); },
       error: () => { this.toast.show('error', 'Erreur sauvegarde'); },
       complete: () => { this.saving = false; }
     });

@@ -16,7 +16,7 @@ import { LoginReturnType } from '../models/auth/login.model';
 // MOCK LOGIN RESPONSE
 // ============================================================================
 export const MOCK_LOGIN_RESPONSE: LoginReturnType = {
-  code: 200,
+  status: 200,
   message: 'Login successful',
   data: {
     access_token: 'mock_jwt_token_12345678901234567890',

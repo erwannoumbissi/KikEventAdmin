@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminService } from '../../core/services/admin.service';
 import { ToastService } from '../../shared/components/toast/service/toast.service';
+import ResponseType from '../../core/models/api_resp.model';
 import { Evenement } from '../../core/models/kikevent.models';
 
 @Component({ selector: 'app-events', standalone: true, imports: [CommonModule, FormsModule], templateUrl: './events.html', styleUrls: ['./events.scss'] })
@@ -20,7 +21,7 @@ export class EventsComponent implements OnInit {
     this.loading = true;
     const s = this.activeTab === 'ALL' ? '' : this.activeTab;
     this.svc.getEvents(s, this.page, this.size, this.searchTerm).subscribe({
-      next: r => { this.events = r.data?.content ?? r.data ?? this.mock(); this.total = r.data?.totalElements ?? this.events.length; },
+      next: (r: ResponseType<any>) => { this.events = r.data?.content ?? r.data ?? this.mock(); this.total = r.data?.totalElements ?? this.events.length; },
       error: () => { this.events = this.mock(); this.loading = false; },
       complete: () => { this.loading = false; }
     });

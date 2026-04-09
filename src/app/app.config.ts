@@ -3,16 +3,17 @@ import { provideRouter, withViewTransitions } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { routes } from './app.routes';
 import { appInterceptor } from './core/services/app.interceptor';
-import { mockHttpInterceptor } from './core/services/mock-http.interceptor';
 
-// IMPORTANT : appInterceptor DOIT être en premier pour que le loader/finalize
-// s'exécute sur toutes les requêtes, y compris celles interceptées par le mock.
-// mockHttpInterceptor en second intercepte avant next() mais après le loader.
+// mockHttpInterceptor retiré — le projet utilise maintenant le vrai backend.
+// Pour réactiver le mode mock (développement sans backend), ajouter :
+//   import { mockHttpInterceptor } from './core/services/mock-http.interceptor';
+// puis l'ajouter dans withInterceptors([appInterceptor, mockHttpInterceptor]).
+
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes, withViewTransitions()),
-    provideHttpClient(withInterceptors([appInterceptor, mockHttpInterceptor])),
+    provideHttpClient(withInterceptors([appInterceptor])),
   ]
 };

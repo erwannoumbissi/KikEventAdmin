@@ -34,7 +34,7 @@ export class AuthService {
       .post<LoginReturnType>(`${environment.apiUrl}${this.URL}/login`, data)
       .pipe(
         tap((res) => {
-          if (res?.code === 200) {
+          if (res?.status === 200) {
             setTimeout(() => this.loadUser(), 100);
           }
         }),
@@ -54,7 +54,7 @@ export class AuthService {
   loadUser(): void {
     this.httpClient.get<any>(`${environment.apiUrl}/my-permissions-roles`).subscribe({
       next: (res) => {
-        if (res?.code === 200) {
+        if (res?.status === 200) {
           this.userSubject.next(res.data as AuthUser);
           UserHelper.saveUser(res.data, LocalStorage.getItem(TOKEN_KEY));
         } else {

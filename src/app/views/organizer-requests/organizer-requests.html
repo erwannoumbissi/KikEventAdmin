@@ -1,0 +1,215 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div>
+      <h1>Demandes Organisateurs</h1>
+      <p>Validation des demandes de profil organisateur</p>
+    </div>
+  </div>
+
+  <!-- Filtres -->
+  <div class="filter-bar">
+    <select [(ngModel)]="selectedStatus" (change)="page=0;load()">
+      <option value="">Tous les statuts</option>
+      <option value="PENDING">En attente</option>
+      <option value="APPROVED">Approuvés</option>
+      <option value="REJECTED">Rejetés</option>
+    </select>
+  </div>
+
+  <!-- Tableau des demandes -->
+  <div class="card" style="padding:0;overflow:hidden">
+    <div *ngIf="loading" class="loading-row">Chargement…</div>
+
+    <table class="ke-table" *ngIf="!loading">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Demandeur</th>
+          <th>Type</th>
+          <th>Email</th>
+          <th>Statut</th>
+          <th>Demande le</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let req of requests; let i = index">
+          <td style="color:#9CA3AF">{{ page*size+i+1 }}</td>
+
+          <!-- Demandeur (avatar + nom) -->
+          <td>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:32px;height:32px;border-radius:50%;background:#EEEDFE;color:#5B4CF5;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">
+                {{ getInitials(req.profile.displayName) }}
+              </div>
+              <span>{{ req.profile.displayName }}</span>
+            </div>
+          </td>
+
+          <!-- Type (INDIVIDUAL ou COMPANY) -->
+          <td>
+            <span class="role-pill" [ngClass]="req.profile.type === 'COMPANY' ? 'badge-info' : 'badge-secondary'">
+              {{ req.profile.type === 'COMPANY' ? 'Entreprise' : 'Individuel' }}
+            </span>
+          </td>
+
+          <!-- Email -->
+          <td style="font-size:13px">{{ req.profile.websiteUrl || 'N/A' }}</td>
+
+          <!-- Statut -->
+          <td>
+            <span class="badge" [ngClass]="getStatusClass(req.status)">
+              {{ getStatusLabel(req.status) }}
+            </span>
+          </td>
+
+          <!-- Date -->
+          <td style="font-size:12px;color:#9CA3AF">{{ formatDate(req.createdAt) }}</td>
+
+          <!-- Actions -->
+          <td>
+            <div class="action-btns">
+              <button
+                *ngIf="req.status === 'PENDING'"
+                class="btn btn-sm btn-success"
+                (click)="openDecision(req, true)"
+                title="Approuver la demande">
+                Approuver
+              </button>
+              <button
+                *ngIf="req.status === 'PENDING'"
+                class="btn btn-sm btn-danger"
+                (click)="openDecision(req, false)"
+                title="Rejeter la demande">
+                Rejeter
+              </button>
+              <button class="btn btn-sm btn-ghost" (click)="viewDetails(req)">
+                Détails
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Pagination -->
+    <div class="pagination" style="padding:12px 16px">
+      <span>{{ requests.length }} / {{ total }} résultats</span>
+      <div class="page-btns">
+        <button (click)="page=page-1;load()" [disabled]="page===0">‹</button>
+        <button class="active">{{ page+1 }}</button>
+        <button (click)="page=page+1;load()" [disabled]="(page+1)*size>=total">›</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modale de décision -->
+<div *ngIf="showDecision && selectedRequest" class="modal-overlay" (click)="showDecision = false">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ isApproving ? 'Approuver' : 'Rejeter' }} la demande</h2>
+      <button class="modal-close" (click)="showDecision = false">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <p><strong>Demandeur:</strong> {{ selectedRequest.profile.displayName }}</p>
+      <p><strong>Type:</strong> {{ selectedRequest.profile.type === 'COMPANY' ? 'Entreprise' : 'Individuel' }}</p>
+      <p><strong>Statut actuel:</strong> {{ getStatusLabel(selectedRequest.status) }}</p>
+
+      <div *ngIf="!isApproving; else approveInfo" class="form-group">
+        <label>Raison du rejet <span style="color:red">*</span></label>
+        <textarea
+          [(ngModel)]="rejectionReason"
+          rows="4"
+          placeholder="Expliquez pourquoi vous rejetez cette demande…"
+          style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px"></textarea>
+      </div>
+
+      <ng-template #approveInfo>
+        <div style="background:#d4edda;padding:12px;border-radius:4px;margin:12px 0">
+          <p style="margin:0;color:#155724">
+            ✓ Le profil sera marqué comme vérifié<br>
+            ✓ Le rôle ORGANIZER sera attribué
+          </p>
+        </div>
+      </ng-template>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-ghost" (click)="showDecision = false">Annuler</button>
+      <button
+        [class]="isApproving ? 'btn btn-success' : 'btn btn-danger'"
+        (click)="confirmDecision()">
+        {{ isApproving ? 'Approuver' : 'Rejeter' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Styles inline pour modale (à déplacer en SCSS) -->
+<style>
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+
+  .modal-content {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    max-width: 500px;
+    width: 90%;
+  }
+
+  .modal-header {
+    padding: 20px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .modal-header h2 {
+    margin: 0;
+    font-size: 18px;
+  }
+
+  .modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #999;
+  }
+
+  .modal-body {
+    padding: 20px;
+  }
+
+  .modal-footer {
+    padding: 15px 20px;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+
+  .form-group {
+    margin-bottom: 15px;
+  }
+
+  .form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+</style>

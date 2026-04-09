@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminService } from '../../core/services/admin.service';
 import { ToastService } from '../../shared/components/toast/service/toast.service';
+import ResponseType from '../../core/models/api_resp.model';
 import { Paiement } from '../../core/models/kikevent.models';
 @Component({ selector: 'app-payments', standalone: true, imports: [CommonModule, FormsModule], templateUrl: './payments.html', styleUrls: ['./payments.scss'] })
 export class PaymentsComponent implements OnInit {
@@ -17,7 +18,7 @@ export class PaymentsComponent implements OnInit {
     this.loading = true;
     const s = this.activeTab === 'ALL' ? '' : this.activeTab;
     this.svc.getPayments(s).subscribe({
-      next: r => { this.payments = r.data?.content ?? r.data ?? this.mock(); },
+      next: (r: ResponseType<any>) => { this.payments = r.data?.content ?? r.data ?? this.mock(); },
       error: () => { this.payments = this.mock(); this.loading = false; },
       complete: () => { this.loading = false; }
     });
@@ -26,8 +27,12 @@ export class PaymentsComponent implements OnInit {
     if (!this.dateDebut || !this.dateFin) { this.toast.show('warning', 'Veuillez sélectionner une période.'); return; }
     this.svc.generateFinancialReport(this.dateDebut, this.dateFin).subscribe({
       next: (blob: Blob) => {
-        const url = URL.createObjectURL(blob); const a = document.createElement('a');
-        a.href = url; a.download = `rapport_${this.dateDebut}_${this.dateFin}.pdf`; a.click(); URL.revokeObjectURL(url);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `rapport_${this.dateDebut}_${this.dateFin}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
         this.toast.show('success', 'Rapport téléchargé !');
       },
       error: () => { this.toast.show('info', 'Rapport (backend requis)'); }
