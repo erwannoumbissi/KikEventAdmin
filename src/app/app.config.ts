@@ -4,10 +4,8 @@ import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { routes } from './app.routes';
 import { appInterceptor } from './core/services/app.interceptor';
 
-// mockHttpInterceptor retiré — le projet utilise maintenant le vrai backend.
-// Pour réactiver le mode mock (développement sans backend), ajouter :
-//   import { mockHttpInterceptor } from './core/services/mock-http.interceptor';
-// puis l'ajouter dans withInterceptors([appInterceptor, mockHttpInterceptor]).
+// Intercepteur pour ajouter le token JWT et gérer les erreurs.
+// Mode API réel activé - pas de données mock.
 
 export const appConfig: ApplicationConfig = {
   providers: [

@@ -17,14 +17,11 @@ export const routes: Routes = [
       { path: 'dashboard',      loadComponent: () => import('./views/dashboard/dashboard').then(m => m.DashboardComponent),          canActivate: [RoleGuard], data: { roles: ['ADMIN'] } },
       { path: 'users',          loadComponent: () => import('./views/users/users').then(m => m.UsersComponent),                      canActivate: [RoleGuard], data: { roles: ['ADMIN'] } },
       { path: 'organizer-requests', loadComponent: () => import('./views/organizer-requests/organizer-requests').then(m => m.OrganizerRequestsComponent), canActivate: [RoleGuard], data: { roles: ['ADMIN'] } },
-      { path: 'validations',    loadComponent: () => import('./views/validations/validations').then(m => m.ValidationsComponent),    canActivate: [RoleGuard], data: { roles: ['ADMIN'] } },
       { path: 'events',        loadComponent: () => import('./views/events/events').then(m => m.EventsComponent),                   canActivate: [RoleGuard], data: { roles: ['ADMIN'] } },
       { path: 'billing',       loadComponent: () => import('./views/billing/billing').then(m => m.BillingComponent),                canActivate: [RoleGuard], data: { roles: ['ADMIN'] } },
       { path: 'payments',      loadComponent: () => import('./views/payments/payments').then(m => m.PaymentsComponent),             canActivate: [RoleGuard], data: { roles: ['ADMIN'] } },
-      { path: 'stats',         loadComponent: () => import('./views/stats/stats').then(m => m.StatsComponent),                     canActivate: [RoleGuard], data: { roles: ['ADMIN'] } },
       { path: 'notifications', loadComponent: () => import('./views/notifications/notifications').then(m => m.NotificationsComponent), canActivate: [RoleGuard], data: { roles: ['ADMIN'] } },
       { path: 'freemium',      loadComponent: () => import('./views/freemium/freemium').then(m => m.FreemiumComponent),             canActivate: [RoleGuard], data: { roles: ['ADMIN'] } },
-      { path: 'settings',      loadComponent: () => import('./views/settings/settings').then(m => m.SettingsComponent),             canActivate: [RoleGuard], data: { roles: ['ADMIN'] } },
       { path: 'unauthorized', loadComponent: () => import('./views/unauthorized/unauthorized').then(m => m.UnauthorizedComponent) }
     ]
   },

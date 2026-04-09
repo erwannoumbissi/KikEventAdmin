@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { CanActivate, Router } from '@angular/router';
+import { CanActivate, Router, UrlTree } from '@angular/router';
 import { UserHelper } from '../helpers/user';
 
 @Injectable({
@@ -8,11 +8,10 @@ import { UserHelper } from '../helpers/user';
 export class IsGuestGuard implements CanActivate {
   private readonly router = inject(Router);
 
-  canActivate(): boolean {
+  canActivate(): boolean | UrlTree {
     if (UserHelper.isConnect()) {
       console.info('IsGuestGuard blocked access, user already connected');
-      this.router.navigate(['/dashboard']);
-      return false;
+      return this.router.parseUrl('/dashboard');
     }
     return true;
   }

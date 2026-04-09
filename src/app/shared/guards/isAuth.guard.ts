@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { CanActivate, Router } from '@angular/router';
+import { CanActivate, Router, UrlTree } from '@angular/router';
 import { UserHelper } from '../helpers/user';
 
 @Injectable({
@@ -8,12 +8,10 @@ import { UserHelper } from '../helpers/user';
 export class IsAuthenticateGuard implements CanActivate {
   private readonly router = inject(Router);
 
-  public canActivate(): boolean {
+  public canActivate(): boolean | UrlTree {
     if (!UserHelper.isConnect()) {
-      this.router.navigate(['login']);
-      return false;
-    } else {
-      return true;
+      return this.router.parseUrl('/login');
     }
+    return true;
   }
 }

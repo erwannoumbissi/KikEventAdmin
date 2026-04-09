@@ -54,7 +54,7 @@ export class AuthService {
    * Avant : le BehaviorSubject était vide après F5, IsAuthGuard redirigeait vers /login.
    */
   loadUser(): Observable<AuthUser | null> {
-    return this.httpClient.get<any>(`${environment.apiUrl}/my-permissions-roles`).pipe(
+    return this.httpClient.get<any>(`${environment.apiUrl}/me`).pipe(
       tap((res) => {
         if (res?.status === 200) {
           this.userSubject.next(res.data as AuthUser);
