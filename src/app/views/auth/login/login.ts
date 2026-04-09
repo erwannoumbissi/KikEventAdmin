@@ -48,7 +48,9 @@ export class LoginComponent {
           // FIX #2 : clé unifiée TOKEN_KEY au lieu de 'jbis_space_token'
           LocalStorage.setItem(TOKEN_KEY, res.data.access_token);
           UserHelper.saveUser(res.data.user, res.data.access_token);
-          this.router.navigate(['/dashboard']);
+          this.auth.loadUser().subscribe(() => {
+            this.router.navigate(['/dashboard']);
+          });
         }
       },
       error: () => { this.errorMsg = 'Identifiants incorrects.'; this.loading = false; },

@@ -4,8 +4,8 @@
  */
 export const environment = {
   production: false,
-  baseUrl: 'http://localhost:8080',
-  apiUrl: 'http://localhost:8080/api/v1',
+  baseUrl: 'https://api.vps.jbis.cm',
+  apiUrl: 'https://api.vps.jbis.cm/api/v1',
 
   appName: 'KikEvent Admin',
   version: '1.0.0'

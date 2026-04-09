@@ -2,8 +2,8 @@ import { inject, Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 
-import { BehaviorSubject, Observable, throwError } from 'rxjs';
-import { catchError, tap } from 'rxjs/operators';
+import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
+import { catchError, map, tap } from 'rxjs/operators';
 import { Login, LoginReturnType } from '../models/auth/login.model';
 
 import { environment } from '../../../environments/environment.development';
@@ -29,15 +29,17 @@ export class AuthService {
   private userSubject = new BehaviorSubject<AuthUser | null>(null);
   public user$ = this.userSubject.asObservable();
 
+  constructor() {
+    const storedUser = this.getStoredUser();
+    if (storedUser) {
+      this.userSubject.next(storedUser);
+    }
+  }
+
   login(data: Login): Observable<LoginReturnType> {
     return this.httpClient
       .post<LoginReturnType>(`${environment.apiUrl}${this.URL}/login`, data)
       .pipe(
-        tap((res) => {
-          if (res?.status === 200) {
-            setTimeout(() => this.loadUser(), 100);
-          }
-        }),
         catchError((err) => throwError(() => err))
       );
   }
@@ -51,20 +53,34 @@ export class AuthService {
    * FIX #3 : loadUser() persiste le user en localStorage pour survivre au refresh.
    * Avant : le BehaviorSubject était vide après F5, IsAuthGuard redirigeait vers /login.
    */
-  loadUser(): void {
-    this.httpClient.get<any>(`${environment.apiUrl}/my-permissions-roles`).subscribe({
-      next: (res) => {
+  loadUser(): Observable<AuthUser | null> {
+    return this.httpClient.get<any>(`${environment.apiUrl}/my-permissions-roles`).pipe(
+      tap((res) => {
         if (res?.status === 200) {
           this.userSubject.next(res.data as AuthUser);
           UserHelper.saveUser(res.data, LocalStorage.getItem(TOKEN_KEY));
         } else {
-          this.userSubject.next(null);
+          const storedUser = this.getStoredUser();
+          this.userSubject.next(storedUser);
         }
-      },
-      error: () => {
-        this.userSubject.next(null);
-      },
-    });
+      }),
+      map((res) => {
+        if (res?.status === 200) {
+          return res.data as AuthUser;
+        }
+        return this.getStoredUser();
+      }),
+      catchError(() => {
+        const storedUser = this.getStoredUser();
+        this.userSubject.next(storedUser);
+        return of(storedUser);
+      })
+    );
+  }
+
+  private getStoredUser(): AuthUser | null {
+    const stored = LocalStorage.getItem('KIKEVENTADMIN_space_user');
+    return stored ? (JSON.parse(stored) as AuthUser) : null;
   }
 
   /**
@@ -81,7 +97,7 @@ export class AuthService {
   }
 
   hasRole(role: string): boolean {
-    const user = this.userSubject.value;
+    const user = this.userSubject.value ?? this.getStoredUser();
     if (!user?.roles) return false;
     return (user.roles as any[]).some(r =>
       this.resolveRoleName(r).trim().toLowerCase() === role.trim().toLowerCase()
@@ -93,7 +109,7 @@ export class AuthService {
   }
 
   hasPermission(permission: string): boolean {
-    const user = this.userSubject.value;
+    const user = this.userSubject.value ?? this.getStoredUser();
     if (!user?.permissions) return false;
     return (user.permissions as any[]).some(p =>
       this.resolvePermName(p).trim().toLowerCase() === permission.trim().toLowerCase()
