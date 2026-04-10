@@ -4,16 +4,21 @@
     <span class="sb-name">KikEvent</span>
     <span class="sb-badge">Admin</span>
   </div>
+
   <nav class="sb-nav">
     <ng-container *ngFor="let item of navItems">
       <div *ngIf="item.section" class="sb-section">{{ item.section }}</div>
-      <a [routerLink]="item.route" routerLinkActive="active" class="sb-item">
+
+      <a [routerLink]="item.route"
+         routerLinkActive="active"
+         class="sb-item">
         <span class="sb-iicon" [innerHTML]="getIcon(item.icon)"></span>
         <span class="sb-label">{{ item.label }}</span>
         <span *ngIf="item.badge > 0" class="sb-badge-dot">{{ item.badge }}</span>
       </a>
     </ng-container>
   </nav>
+
   <div class="sb-footer">
     <div class="sb-profile">
       <div class="sb-avatar">{{ getInitials() }}</div>

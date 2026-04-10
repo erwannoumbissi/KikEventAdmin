@@ -2,214 +2,187 @@
   <div class="page-header">
     <div>
       <h1>Demandes Organisateurs</h1>
-      <p>Validation des demandes de profil organisateur</p>
+      <p>{{ all.length }} demande(s) au total</p>
     </div>
   </div>
 
-  <!-- Filtres -->
-  <div class="filter-bar">
-    <select [(ngModel)]="selectedStatus" (change)="page=0;load()">
-      <option value="">Tous les statuts</option>
-      <option value="PENDING">En attente</option>
-      <option value="APPROVED">Approuvés</option>
-      <option value="REJECTED">Rejetés</option>
-    </select>
+  <!-- Onglets avec compteurs -->
+  <div class="ke-tabs">
+    <div *ngFor="let t of tabs"
+         class="tab" [class.active]="activeTab === t.key"
+         (click)="setTab(t.key)">
+      {{ t.label }}
+      <span *ngIf="t.key !== 'ALL' && count(t.key) > 0"
+            style="margin-left:6px;background:#EF9F27;color:#fff;font-size:10px;padding:1px 6px;border-radius:10px">
+        {{ count(t.key) }}
+      </span>
+    </div>
   </div>
 
-  <!-- Tableau des demandes -->
   <div class="card" style="padding:0;overflow:hidden">
     <div *ngIf="loading" class="loading-row">Chargement…</div>
 
-    <table class="ke-table" *ngIf="!loading">
+    <div *ngIf="!loading && filtered.length === 0" class="empty-state" style="padding:40px">
+      <p>Aucune demande {{ activeTab !== 'ALL' ? 'dans cette catégorie' : '' }}.</p>
+    </div>
+
+    <table class="ke-table" *ngIf="!loading && filtered.length > 0">
       <thead>
-        <tr>
-          <th>#</th>
-          <th>Demandeur</th>
-          <th>Type</th>
-          <th>Email</th>
-          <th>Statut</th>
-          <th>Demande le</th>
-          <th>Actions</th>
-        </tr>
+        <tr><th>#</th><th>Demandeur</th><th>Type</th><th>Document</th><th>Statut</th><th>Date</th><th>Actions</th></tr>
       </thead>
       <tbody>
-        <tr *ngFor="let req of requests; let i = index">
-          <td style="color:#9CA3AF">{{ page*size+i+1 }}</td>
+        <tr *ngFor="let req of pageSlice; let i = index">
+          <td style="color:#9CA3AF">{{ page * size + i + 1 }}</td>
 
-          <!-- Demandeur (avatar + nom) -->
           <td>
             <div style="display:flex;align-items:center;gap:10px">
               <div style="width:32px;height:32px;border-radius:50%;background:#EEEDFE;color:#5B4CF5;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">
-                {{ getInitials(req.profile.displayName) }}
+                {{ initials(req.profile.displayName) }}
               </div>
-              <span>{{ req.profile.displayName }}</span>
+              <div>
+                <p style="font-weight:500;margin:0;font-size:13px">{{ req.profile.displayName }}</p>
+                <p style="font-size:11px;color:#9CA3AF;margin:0">User #{{ req.userId }}</p>
+              </div>
             </div>
           </td>
 
-          <!-- Type (INDIVIDUAL ou COMPANY) -->
           <td>
-            <span class="role-pill" [ngClass]="req.profile.type === 'COMPANY' ? 'badge-info' : 'badge-secondary'">
+            <span class="badge" [ngClass]="req.profile.type === 'COMPANY' ? 'badge-purple' : 'badge-secondary'">
               {{ req.profile.type === 'COMPANY' ? 'Entreprise' : 'Individuel' }}
             </span>
           </td>
 
-          <!-- Email -->
-          <td style="font-size:13px">{{ req.profile.websiteUrl || 'N/A' }}</td>
-
-          <!-- Statut -->
-          <td>
-            <span class="badge" [ngClass]="getStatusClass(req.status)">
-              {{ getStatusLabel(req.status) }}
-            </span>
+          <td style="font-size:12px">
+            <span style="font-weight:500">{{ req.document.documentType }}</span>
+            <br><span style="color:#9CA3AF">{{ req.document.documentNumber }}</span>
           </td>
 
-          <!-- Date -->
-          <td style="font-size:12px;color:#9CA3AF">{{ formatDate(req.createdAt) }}</td>
+          <td>
+            <span class="badge" [ngClass]="statusClass(req.status)">{{ statusLabel(req.status) }}</span>
+          </td>
 
-          <!-- Actions -->
+          <td style="font-size:12px;color:#9CA3AF">{{ req.createdAt | date:'dd/MM/yyyy' }}</td>
+
           <td>
             <div class="action-btns">
-              <button
-                *ngIf="req.status === 'PENDING'"
-                class="btn btn-sm btn-success"
-                (click)="openDecision(req, true)"
-                title="Approuver la demande">
-                Approuver
-              </button>
-              <button
-                *ngIf="req.status === 'PENDING'"
-                class="btn btn-sm btn-danger"
-                (click)="openDecision(req, false)"
-                title="Rejeter la demande">
-                Rejeter
-              </button>
-              <button class="btn btn-sm btn-ghost" (click)="viewDetails(req)">
-                Détails
-              </button>
+              <button class="btn btn-sm btn-ghost"    (click)="openDetail(req)">Détails</button>
+              <a class="btn btn-sm btn-ghost" [routerLink]="['/organizer-requests', req.userId]">Page</a>
+              <button *ngIf="req.status === 'PENDING'" class="btn btn-sm btn-success" (click)="openDecision(req, true)">Approuver</button>
+              <button *ngIf="req.status === 'PENDING'" class="btn btn-sm btn-danger"  (click)="openDecision(req, false)">Rejeter</button>
             </div>
           </td>
         </tr>
       </tbody>
     </table>
 
-    <!-- Pagination -->
-    <div class="pagination" style="padding:12px 16px">
-      <span>{{ requests.length }} / {{ total }} résultats</span>
+    <div class="pagination" style="padding:12px 16px" *ngIf="!loading && filtered.length > 0">
+      <span>{{ filtered.length }} résultat(s)</span>
       <div class="page-btns">
-        <button (click)="page=page-1;load()" [disabled]="page===0">‹</button>
-        <button class="active">{{ page+1 }}</button>
-        <button (click)="page=page+1;load()" [disabled]="(page+1)*size>=total">›</button>
+        <button (click)="page = page - 1" [disabled]="page === 0">‹</button>
+        <button class="active">{{ page + 1 }} / {{ totalPages }}</button>
+        <button (click)="page = page + 1" [disabled]="page + 1 >= totalPages">›</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Modale de décision -->
-<div *ngIf="showDecision && selectedRequest" class="modal-overlay" (click)="showDecision = false">
-  <div class="modal-content" (click)="$event.stopPropagation()">
+<!-- ── Modale: Décision ───────────────────────────────────────────── -->
+<div class="modal-overlay" *ngIf="showDecision && selected" (click)="close()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
     <div class="modal-header">
-      <h2>{{ isApproving ? 'Approuver' : 'Rejeter' }} la demande</h2>
-      <button class="modal-close" (click)="showDecision = false">✕</button>
+      <h2>{{ isApproving ? '✅ Approuver' : '❌ Rejeter' }} la demande</h2>
+      <button class="modal-close" (click)="close()">✕</button>
     </div>
 
-    <div class="modal-body">
-      <p><strong>Demandeur:</strong> {{ selectedRequest.profile.displayName }}</p>
-      <p><strong>Type:</strong> {{ selectedRequest.profile.type === 'COMPANY' ? 'Entreprise' : 'Individuel' }}</p>
-      <p><strong>Statut actuel:</strong> {{ getStatusLabel(selectedRequest.status) }}</p>
+    <p style="font-size:13px;color:#6B7280;margin-bottom:4px">
+      Demandeur : <strong>{{ selected.profile.displayName }}</strong>
+    </p>
+    <p style="font-size:13px;color:#6B7280;margin-bottom:16px">
+      Type : {{ selected.profile.type === 'COMPANY' ? 'Entreprise' : 'Individuel' }}
+    </p>
 
-      <div *ngIf="!isApproving; else approveInfo" class="form-group">
-        <label>Raison du rejet <span style="color:red">*</span></label>
-        <textarea
-          [(ngModel)]="rejectionReason"
-          rows="4"
-          placeholder="Expliquez pourquoi vous rejetez cette demande…"
-          style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px"></textarea>
-      </div>
+    <div *ngIf="isApproving" style="background:#E1F5EE;border-radius:8px;padding:14px;margin-bottom:4px">
+      <p style="margin:0;color:#155724;font-size:13px;font-weight:500">Effets :</p>
+      <p style="margin:6px 0 0;color:#155724;font-size:12px">✓ Document → APPROVED</p>
+      <p style="margin:4px 0 0;color:#155724;font-size:12px">✓ Profil organisateur → isVerified = true</p>
+      <p style="margin:4px 0 0;color:#155724;font-size:12px">✓ Rôle ORGANIZER attribué</p>
+    </div>
 
-      <ng-template #approveInfo>
-        <div style="background:#d4edda;padding:12px;border-radius:4px;margin:12px 0">
-          <p style="margin:0;color:#155724">
-            ✓ Le profil sera marqué comme vérifié<br>
-            ✓ Le rôle ORGANIZER sera attribué
-          </p>
-        </div>
-      </ng-template>
+    <div *ngIf="!isApproving" class="form-group" style="margin-bottom:0">
+      <label>Raison du rejet <span style="color:#E24B4A">*</span></label>
+      <textarea [(ngModel)]="rejectReason" rows="4" placeholder="Expliquez la raison du rejet…"></textarea>
     </div>
 
     <div class="modal-footer">
-      <button class="btn btn-ghost" (click)="showDecision = false">Annuler</button>
-      <button
-        [class]="isApproving ? 'btn btn-success' : 'btn btn-danger'"
-        (click)="confirmDecision()">
-        {{ isApproving ? 'Approuver' : 'Rejeter' }}
+      <button class="btn btn-ghost" (click)="close()">Annuler</button>
+      <button [ngClass]="isApproving ? 'btn btn-success' : 'btn btn-danger'" (click)="confirmDecision()">
+        {{ isApproving ? 'Confirmer l\'approbation' : 'Confirmer le rejet' }}
       </button>
     </div>
   </div>
 </div>
 
-<!-- Styles inline pour modale (à déplacer en SCSS) -->
-<style>
-  .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-  }
+<!-- ── Modale: Détail ─────────────────────────────────────────────── -->
+<div class="modal-overlay" *ngIf="showDetail && selected" (click)="close()">
+  <div class="modal-box" style="max-width:540px" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Détail de la demande</h2>
+      <button class="modal-close" (click)="close()">✕</button>
+    </div>
+    <div style="padding:16px">
+      <!-- Profil -->
+      <h4 style="font-size:11px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.05em;margin:0 0 10px">Profil organisateur</h4>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+        <div style="background:#F9FAFB;border-radius:8px;padding:10px">
+          <p style="font-size:10px;color:#9CA3AF;margin:0 0 2px">Nom d'affichage</p>
+          <p style="font-size:13px;font-weight:600;margin:0">{{ selected.profile.displayName }}</p>
+        </div>
+        <div style="background:#F9FAFB;border-radius:8px;padding:10px">
+          <p style="font-size:10px;color:#9CA3AF;margin:0 0 2px">Type</p>
+          <p style="font-size:13px;font-weight:600;margin:0">
+            {{ selected.profile.type === 'COMPANY' ? 'Entreprise' : 'Individuel' }}
+          </p>
+        </div>
+        <div *ngIf="selected.profile.biography" style="background:#F9FAFB;border-radius:8px;padding:10px;grid-column:1/-1">
+          <p style="font-size:10px;color:#9CA3AF;margin:0 0 2px">Biographie</p>
+          <p style="font-size:12px;color:#374151;margin:0">{{ selected.profile.biography }}</p>
+        </div>
+        <div *ngIf="selected.profile.websiteUrl" style="background:#F9FAFB;border-radius:8px;padding:10px;grid-column:1/-1">
+          <p style="font-size:10px;color:#9CA3AF;margin:0 0 2px">Site web</p>
+          <a [href]="selected.profile.websiteUrl" target="_blank" style="font-size:12px;color:#5B4CF5">
+            {{ selected.profile.websiteUrl }}
+          </a>
+        </div>
+      </div>
 
-  .modal-content {
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-    max-width: 500px;
-    width: 90%;
-  }
+      <!-- Document -->
+      <h4 style="font-size:11px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.05em;margin:0 0 10px">Document soumis</h4>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+        <div style="background:#F9FAFB;border-radius:8px;padding:10px">
+          <p style="font-size:10px;color:#9CA3AF;margin:0 0 2px">Type</p>
+          <p style="font-size:13px;font-weight:600;margin:0">{{ selected.document.documentType }}</p>
+        </div>
+        <div style="background:#F9FAFB;border-radius:8px;padding:10px">
+          <p style="font-size:10px;color:#9CA3AF;margin:0 0 2px">Numéro</p>
+          <p style="font-size:13px;font-weight:600;margin:0">{{ selected.document.documentNumber || 'N/A' }}</p>
+        </div>
+        <div *ngIf="selected.document.fileUrl" style="grid-column:1/-1">
+          <a [href]="selected.document.fileUrl" target="_blank" class="btn btn-sm btn-ghost">
+            Ouvrir le document ↗
+          </a>
+        </div>
+      </div>
 
-  .modal-header {
-    padding: 20px;
-    border-bottom: 1px solid #eee;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .modal-header h2 {
-    margin: 0;
-    font-size: 18px;
-  }
-
-  .modal-close {
-    background: none;
-    border: none;
-    font-size: 24px;
-    cursor: pointer;
-    color: #999;
-  }
-
-  .modal-body {
-    padding: 20px;
-  }
-
-  .modal-footer {
-    padding: 15px 20px;
-    border-top: 1px solid #eee;
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-  }
-
-  .form-group {
-    margin-bottom: 15px;
-  }
-
-  .form-group label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 500;
-  }
-</style>
+      <!-- Raison rejet -->
+      <div *ngIf="selected.rejectionReason" style="background:#FCEBEB;border-radius:8px;padding:12px">
+        <p style="font-size:10px;color:#A32D2D;margin:0 0 4px;font-weight:600">RAISON DU REJET</p>
+        <p style="font-size:13px;color:#A32D2D;margin:0">{{ selected.rejectionReason }}</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" (click)="close()">Fermer</button>
+      <button *ngIf="selected.status === 'PENDING'" class="btn btn-success" (click)="close(); openDecision(selected, true)">Approuver</button>
+      <button *ngIf="selected.status === 'PENDING'" class="btn btn-danger"  (click)="close(); openDecision(selected, false)">Rejeter</button>
+    </div>
+  </div>
+</div>

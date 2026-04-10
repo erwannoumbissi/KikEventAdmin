@@ -1,16 +1,17 @@
 import { Component, inject } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService, TOKEN_KEY } from '../../../core/services/auth.service';
 import { UserHelper } from '../../../shared/helpers/user';
 import { LocalStorage } from '../../../shared/helpers/localStorage';
 import { LoginReturnType } from '../../../core/models/auth/login.model';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink],
   templateUrl: './login.html',
   styleUrls: ['./login.scss']
 })
@@ -21,11 +22,9 @@ export class LoginComponent {
 
   features = [
     'Gestion complète des utilisateurs',
-    'Bureau des validations & onboarding',
-    'Supervision des événements',
-    'Billetterie & paiements PayMooney',
-    'Configuration du mode Freemium',
-    'Notifications push ciblées',
+    'Bureau des validations organizer',
+    'Gestion des profils utilisateurs',
+    'Sécurité JWT + rôles ADMIN',
   ];
 
   form: FormGroup = this.fb.group({
@@ -38,6 +37,22 @@ export class LoginComponent {
   errorMsg = '';
 
   get f() { return this.form.controls; }
+
+  loginWithGoogle(): void {
+    this.auth.startGoogleAuth().subscribe({
+      next: (res) => {
+        const authUrl = (res?.data as any)?.authUrl;
+        if (authUrl) {
+          window.location.href = authUrl;
+          return;
+        }
+        window.location.href = `${environment.apiUrl}/auth/google`;
+      },
+      error: () => {
+        window.location.href = `${environment.apiUrl}/auth/google`;
+      }
+    });
+  }
 
   submit(): void {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }

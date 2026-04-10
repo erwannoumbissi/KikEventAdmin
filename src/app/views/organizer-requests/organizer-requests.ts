@@ -1,170 +1,130 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { AdminService } from '../../core/services/admin.service';
 import { ToastService } from '../../shared/components/toast/service/toast.service';
 import { OrganizerRequest } from '../../core/models/organizer/organizer.model';
-import { PaginatedResponse } from '../../core/models/admin/admin-dto.model';
+import { extractContent, extractTotal } from '../../shared/helpers/api.helper';
 
 @Component({
   selector: 'app-organizer-requests',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './organizer-requests.html',
   styleUrls: ['./organizer-requests.scss']
 })
 export class OrganizerRequestsComponent implements OnInit {
-  protected svc = inject(AdminService);
-  protected toast = inject(ToastService);
+  private svc   = inject(AdminService);
+  private toast = inject(ToastService);
 
-  // Données
-  requests: OrganizerRequest[] = [];
-  loading = false;
+  all      : OrganizerRequest[] = [];  // toutes les demandes chargées
+  filtered : OrganizerRequest[] = [];  // filtrées par onglet
+  loading  = false;
+  page = 0; size = 10; total = 0;
 
-  // Pagination & Filtrage
-  page = 0;
-  size = 10;
-  total = 0;
-  selectedStatus = ''; // '': tous, 'PENDING': en attente, 'APPROVED': approuvés, 'REJECTED': rejetés
+  // Onglets
+  activeTab   : 'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED' = 'ALL';
+  tabs = [
+    { key: 'ALL',      label: 'Toutes' },
+    { key: 'PENDING',  label: 'En attente' },
+    { key: 'APPROVED', label: 'Approuvées' },
+    { key: 'REJECTED', label: 'Rejetées' }
+  ] as const;
 
   // Modales
   showDecision = false;
-  selectedRequest: OrganizerRequest | null = null;
-  isApproving = false;
-  rejectionReason = '';
+  showDetail   = false;
+  selected     : OrganizerRequest | null = null;
+  isApproving  = false;
+  rejectReason = '';
 
-  ngOnInit(): void {
-    this.load();
-  }
+  ngOnInit(): void { this.load(); }
 
-  /**
-   * Charge la liste des demandes organizer avec pagination et filtres
-   */
   load(): void {
     this.loading = true;
-    this.svc.getOrganizerRequests(this.page, this.size, this.selectedStatus).subscribe({
-      next: (response) => {
-        if (response.data) {
-          const paginatedData = response.data as PaginatedResponse<OrganizerRequest>;
-          this.requests = paginatedData.content ?? [];
-          this.total = paginatedData.totalElements ?? this.requests.length;
-        }
+    this.svc.getOrganizerRequests().subscribe({
+      next: r => {
+        this.all   = extractContent<OrganizerRequest>(r.data as any);
+        this.total = extractTotal<OrganizerRequest>(r.data as any);
+        this.applyTab();
       },
-      error: () => {
-        this.toast.show('error', 'Erreur lors du chargement des demandes');
-        this.loading = false;
-      },
-      complete: () => {
-        this.loading = false;
-      }
+      error: () => { this.toast.show('error', 'Erreur chargement demandes'); this.loading = false; },
+      complete: () => { this.loading = false; }
     });
   }
 
-  // ─────────────────────────────────────────────
-  // MODAL ACTIONS
-  // ─────────────────────────────────────────────
+  setTab(tab: 'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'): void {
+    this.activeTab = tab;
+    this.page = 0;
+    this.applyTab();
+  }
 
-  /**
-   * Ouvre la modale de décision (approbation/rejet)
-   */
-  openDecision(request: OrganizerRequest, approve: boolean): void {
-    this.selectedRequest = request;
+  private applyTab(): void {
+    this.filtered = this.activeTab === 'ALL'
+      ? this.all
+      : this.all.filter(r => r.status === this.activeTab);
+  }
+
+  count(status: string): number {
+    return this.all.filter(r => r.status === status).length;
+  }
+
+  // ── Modales ────────────────────────────────────────────────────────
+
+  openDecision(req: OrganizerRequest, approve: boolean): void {
+    this.selected    = req;
     this.isApproving = approve;
-    this.rejectionReason = '';
+    this.rejectReason = '';
     this.showDecision = true;
   }
 
-  /**
-   * Valide la décision (approbation ou rejet)
-   */
+  openDetail(req: OrganizerRequest): void {
+    this.selected  = req;
+    this.showDetail = true;
+  }
+
+  close(): void {
+    this.showDecision = this.showDetail = false;
+    this.selected = null;
+  }
+
   confirmDecision(): void {
-    if (!this.selectedRequest?.userId) {
-      return;
+    if (!this.selected?.userId) { return; }
+    if (!this.isApproving && !this.rejectReason.trim()) {
+      this.toast.show('warning', 'Raison du rejet requise'); return;
     }
-
-    // Validation: si rejet, une raison est obligatoire
-    if (!this.isApproving && !this.rejectionReason.trim()) {
-      this.toast.show('warning', 'Veuillez indiquer la raison du rejet');
-      return;
-    }
-
-    const rejectionReasonOrNull = this.isApproving ? null : this.rejectionReason.trim();
-
     this.svc.decideOrganizerRequest(
-      this.selectedRequest.userId,
+      this.selected.userId,
       this.isApproving,
-      rejectionReasonOrNull
+      this.isApproving ? null : this.rejectReason.trim()
     ).subscribe({
       next: () => {
-        const message = this.isApproving
-          ? 'Demande approuvée et rôle ORGANIZER attribué'
-          : 'Demande rejetée';
-        this.toast.show('success', message);
-        this.showDecision = false;
+        this.toast.show('success', this.isApproving ? 'Demande approuvée — rôle ORGANIZER attribué' : 'Demande rejetée');
+        this.close();
         this.load();
       },
-      error: (err) => {
-        const msg = err.error?.message || 'Erreur lors de la décision';
-        this.toast.show('error', msg);
-      }
+      error: (e) => { this.toast.show('error', e.error?.message ?? 'Erreur décision'); }
     });
   }
 
-  // ─────────────────────────────────────────────
-  // VIEW DETAILS
-  // ─────────────────────────────────────────────
+  // ── Helpers ─────────────────────────────────────────────────────────
 
-  /**
-   * Ouvre un nouvel onglet pour voir le profil et le document
-   */
-  viewDetails(request: OrganizerRequest): void {
-    // Implémentation future: modal ou redirection
-    console.log('Détails de la demande:', request);
+  statusLabel(s: string): string {
+    return ({ PENDING: 'En attente', APPROVED: 'Approuvé', REJECTED: 'Rejeté' } as Record<string,string>)[s] ?? s;
   }
 
-  // ─────────────────────────────────────────────
-  // HELPERS
-  // ─────────────────────────────────────────────
-
-  /**
-   * Retourne le label du statut avec couleur appropriée
-   */
-  getStatusLabel(status: string): string {
-    const labels: { [key: string]: string } = {
-      'PENDING': 'En attente',
-      'APPROVED': 'Approuvé',
-      'REJECTED': 'Rejeté'
-    };
-    return labels[status] || status;
+  statusClass(s: string): string {
+    return ({ PENDING: 'badge-warning', APPROVED: 'badge-success', REJECTED: 'badge-danger' } as Record<string,string>)[s] ?? 'badge-secondary';
   }
 
-  /**
-   * Retourne la classe CSS pour le badge de statut
-   */
-  getStatusClass(status: string): string {
-    const classes: { [key: string]: string } = {
-      'PENDING': 'badge-warning',
-      'APPROVED': 'badge-success',
-      'REJECTED': 'badge-danger'
-    };
-    return classes[status] || 'badge-secondary';
+  initials(name: string): string {
+    return (name || '?').split(' ').map(w => w[0] || '').join('').substring(0, 2).toUpperCase();
   }
 
-  /**
-   * Retourne les initiales du nom pour l'avatar
-   */
-  getInitials(name: string): string {
-    return name
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase())
-      .join('')
-      .substring(0, 2);
+  get pageSlice(): OrganizerRequest[] {
+    return this.filtered.slice(this.page * this.size, (this.page + 1) * this.size);
   }
 
-  /**
-   * Formate la date
-   */
-  formatDate(date: string): string {
-    return new Date(date).toLocaleDateString('fr-FR');
-  }
+  get totalPages(): number { return Math.max(1, Math.ceil(this.filtered.length / this.size)); }
 }

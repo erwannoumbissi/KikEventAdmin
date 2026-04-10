@@ -1,0 +1,16 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div><h1>Détail demande organizer</h1><p *ngIf="request">User #{{ request.userId }}</p></div>
+    <a class="btn btn-ghost" routerLink="/organizer-requests">Retour demandes</a>
+  </div>
+
+  <div class="card" *ngIf="loading">Chargement…</div>
+  <div class="card" *ngIf="!loading && request">
+    <p><strong>Status:</strong> {{ request.status }}</p>
+    <p><strong>Display Name:</strong> {{ request.profile.displayName }}</p>
+    <p><strong>Type:</strong> {{ request.profile.type }}</p>
+    <p><strong>Document:</strong> {{ request.document.documentType }} - {{ request.document.documentNumber || 'N/A' }}</p>
+    <p><strong>File URL:</strong> {{ request.document.fileUrl || 'N/A' }}</p>
+    <p><strong>Rejection:</strong> {{ request.rejectionReason || 'N/A' }}</p>
+  </div>
+</div>

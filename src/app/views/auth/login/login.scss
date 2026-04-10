@@ -77,6 +77,8 @@
 .submit-btn{width:100%;padding:12px;background:#5B4CF5;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;font-family:inherit;margin-top:8px;cursor:pointer;transition:background .15s;display:flex;align-items:center;justify-content:center}
 .submit-btn:hover:not(:disabled){background:#3C3489}
 .submit-btn:disabled{opacity:.6;cursor:not-allowed}
+.btn-google{background:#fff;color:#1A1A2E;border:1px solid rgba(0,0,0,.1);margin-top:10px}
+.btn-google:hover:not(:disabled){background:#f7f7f7}
 .spin{width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;display:inline-block}
 @keyframes sp{to{transform:rotate(360deg)}}
 .sec-note{font-size:11px;color:#9CA3AF;text-align:center;margin-top:24px}

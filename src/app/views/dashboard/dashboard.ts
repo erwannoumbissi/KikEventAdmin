@@ -1,15 +1,15 @@
 import { Component, inject, OnInit, AfterViewInit, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { AdminService } from '../../core/services/admin.service';
-import ResponseType from '../../core/models/api_resp.model';
-import { DashboardStats, ActivityItem } from '../../core/models/kikevent.models';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
+import { AdminService } from '../../core/services/admin.service';
+import { User } from '../../core/models/user/User.model';
+import { OrganizerRequest } from '../../core/models/organizer/organizer.model';
+import { extractContent } from '../../shared/helpers/api.helper';
 
-// Register Chart.js components
 Chart.register(...registerables);
-
-interface AIcon { bg: string; color: string; svg: string; }
 
 @Component({
   selector: 'app-dashboard',
@@ -19,83 +19,112 @@ interface AIcon { bg: string; color: string; svg: string; }
   styleUrls: ['./dashboard.scss']
 })
 export class DashboardComponent implements OnInit, AfterViewInit {
-  @ViewChild('revenueChart') rcRef!: ElementRef<HTMLCanvasElement>;
-  @ViewChild('rolesChart')   rdRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('rolesChart') rolesRef!: ElementRef<HTMLCanvasElement>;
 
   private svc = inject(AdminService);
-  stats: DashboardStats = this.getEmptyStats();
-  loading = true; chartsReady = false;
+
+  loading      = true;
+  chartsReady  = false;
+  chartDrawn   = false;
+
+  // Compteurs calculés depuis les vraies données
+  totalUsers        = 0;
+  activeUsers       = 0;
+  suspendedUsers    = 0;
+  totalOrganizers   = 0;
+  totalParticipants = 0;
+  totalAdmins       = 0;
+  totalControlers   = 0;
+  pendingRequests   = 0;
+  approvedRequests  = 0;
+  rejectedRequests  = 0;
+
+  recentUsers    : User[]              = [];
+  pendingList    : OrganizerRequest[]  = [];
+  usersByRole    : { role: string; count: number; color: string }[] = [];
 
   ngOnInit(): void {
-    this.svc.getDashboardStats().subscribe({
-      next: (r: ResponseType<any>) => { this.stats = r.data; },
-      error: () => { this.stats = this.getEmptyStats(); },
-      complete: () => { this.loading = false; if (this.chartsReady) { this.render(); } }
+    forkJoin({
+      users : this.svc.getUsers().pipe(catchError(() => of(null))),
+      reqs  : this.svc.getOrganizerRequests().pipe(catchError(() => of(null)))
+    }).subscribe({
+      next: ({ users, reqs }) => {
+        if (users?.data) {
+          const list = extractContent<User>(users.data as any);
+          this.totalUsers     = (users.data as any).totalElements ?? list.length;
+          this.activeUsers    = list.filter(u => u.enabled).length;
+          this.suspendedUsers = list.filter(u => !u.enabled).length;
+          this.recentUsers    = list.slice(0, 6);
+
+          let adm = 0, org = 0, ctrl = 0, part = 0;
+          list.forEach(u => {
+            const names = (u.roles ?? []).map(r => r.name);
+            if (names.includes('ADMIN'))       adm++;
+            if (names.includes('ORGANIZER'))   org++;
+            if (names.includes('CONTROLER'))   ctrl++;
+            if (names.includes('PARTICIPANT')) part++;
+          });
+          this.totalAdmins       = adm;
+          this.totalOrganizers   = org;
+          this.totalControlers   = ctrl;
+          this.totalParticipants = part;
+          this.usersByRole = [
+            { role: 'Admins',        count: adm,  color: '#5B4CF5' },
+            { role: 'Organisateurs', count: org,  color: '#1D9E75' },
+            { role: 'Contrôleurs',   count: ctrl, color: '#EF9F27' },
+            { role: 'Participants',  count: part, color: '#378ADD' }
+          ].filter(r => r.count > 0);
+        }
+
+        if (reqs?.data) {
+          const list = extractContent<OrganizerRequest>(reqs.data as any);
+          this.pendingRequests  = list.filter(r => r.status === 'PENDING').length;
+          this.approvedRequests = list.filter(r => r.status === 'APPROVED').length;
+          this.rejectedRequests = list.filter(r => r.status === 'REJECTED').length;
+          this.pendingList      = list.filter(r => r.status === 'PENDING').slice(0, 5);
+        }
+
+        this.loading = false;
+        if (this.chartsReady) { this.renderChart(); }
+      },
+      error: () => { this.loading = false; }
     });
   }
 
   ngAfterViewInit(): void {
     this.chartsReady = true;
-    this.loadChart().then(() => {
-      if (!this.loading) { this.render(); }
-      else { const t = setInterval(() => { if (!this.loading) { this.render(); clearInterval(t); } }, 200); }
+    if (!this.loading) { this.renderChart(); }
+  }
+
+  private renderChart(): void {
+    if (this.chartDrawn || !this.rolesRef?.nativeElement || !this.usersByRole.length) { return; }
+    this.chartDrawn = true;
+    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const ticks  = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)';
+    new Chart(this.rolesRef.nativeElement, {
+      type: 'doughnut',
+      data: {
+        labels: this.usersByRole.map(r => r.role),
+        datasets: [{
+          data: this.usersByRole.map(r => r.count),
+          backgroundColor: this.usersByRole.map(r => r.color),
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '70%',
+        plugins: { legend: { position: 'bottom', labels: { color: ticks, font: { size: 11 }, padding: 12 } } }
+      }
     });
   }
 
-  private loadChart(): Promise<void> {
-    // Chart.js is now imported, no need to load from CDN
-    return Promise.resolve();
+  initials(name: string): string {
+    return (name || '?').substring(0, 2).toUpperCase();
   }
 
-  private render(): void {
-    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const grid = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
-    const ticks = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)';
-    if (this.rcRef?.nativeElement) {
-      new Chart(this.rcRef.nativeElement, {
-        type: 'bar',
-        data: {
-          labels: this.stats.revenueLabels,
-          datasets: [
-            { label: 'Revenus', data: this.stats.monthlyRevenue, backgroundColor: '#5B4CF5', borderRadius: 5, barPercentage: 0.6 },
-            { label: 'Commissions', data: this.stats.monthlyRevenue.map((v: number) => +(v * 0.05).toFixed(1)), backgroundColor: '#9FE1CB', borderRadius: 5, barPercentage: 0.6 }
-          ]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
-          scales: { x: { grid: { display: false }, ticks: { color: ticks, font: { size: 11 } } },
-                    y: { grid: { color: grid }, ticks: { color: ticks, font: { size: 11 }, callback: (tickValue: string | number) => typeof tickValue === 'number' ? tickValue + 'k' : tickValue }, border: { display: false } } } }
-      });
-    }
-    if (this.rdRef?.nativeElement) {
-      new Chart(this.rdRef.nativeElement, {
-        type: 'doughnut',
-        data: { labels: this.stats.usersByRole?.map((r: {role:string;count:number}) => r.role) || [],
-                datasets: [{ data: this.stats.usersByRole?.map((r: {role:string;count:number}) => r.count) || [], backgroundColor: ['#5B4CF5','#1D9E75','#EF9F27','#378ADD'], borderWidth: 0 }] },
-        options: { responsive: true, maintainAspectRatio: false, cutout: '68%', plugins: { legend: { display: false } } }
-      });
-    }
-  }
-
-  aIcon(type: string): AIcon {
-    const m: Record<string, AIcon> = {
-      USER_REGISTERED:     { bg: '#EEEDFE', color: '#5B4CF5', svg: 'user' },
-      EVENT_VALIDATED:     { bg: '#E1F5EE', color: '#1D9E75', svg: 'check' },
-      TICKET_REFUNDED:     { bg: '#FAEEDA', color: '#854F0B', svg: 'ticket' },
-      USER_SUSPENDED:      { bg: '#FCEBEB', color: '#A32D2D', svg: 'x' },
-      PAYMENT_RECEIVED:    { bg: '#E6F1FB', color: '#185FA5', svg: 'credit' },
-      ONBOARDING_APPROVED: { bg: '#E1F5EE', color: '#1D9E75', svg: 'check' },
-    };
-    return m[type] ?? { bg: '#F1EFE8', color: '#888', svg: 'info' };
-  }
-
-  private getEmptyStats(): DashboardStats {
-    return {
-      totalUsers: 0, totalOrganizers: 0, totalParticipants: 0,
-      activeEvents: 0, ticketsSold: 0, totalRevenue: 0, pendingValidations: 0,
-      monthlyRevenue: [],
-      revenueLabels: [],
-      usersByRole: [],
-      recentActivity: []
-    };
+  roleNames(user: User): string {
+    return (user.roles ?? []).map(r => r.name).join(', ') || 'Aucun';
   }
 }

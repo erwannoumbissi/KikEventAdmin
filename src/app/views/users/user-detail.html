@@ -1,0 +1,15 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div><h1>Détail utilisateur</h1><p *ngIf="user">{{ user.username }}</p></div>
+    <a class="btn btn-ghost" routerLink="/users">Retour utilisateurs</a>
+  </div>
+
+  <div class="card" *ngIf="loading">Chargement…</div>
+  <div class="card" *ngIf="!loading && user">
+    <p><strong>ID:</strong> {{ user.id }}</p>
+    <p><strong>Email:</strong> {{ user.email }}</p>
+    <p><strong>Statut:</strong> {{ user.enabled ? 'Actif' : 'Suspendu' }}</p>
+    <p><strong>Rôles:</strong> {{ roleNames() }}</p>
+    <p><strong>Permissions:</strong> {{ permissionNames() }}</p>
+  </div>
+</div>

@@ -1,0 +1,14 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div><h1>Détail profil</h1><p *ngIf="profile">Utilisateur #{{ profile.userId }}</p></div>
+    <a class="btn btn-ghost" routerLink="/profiles">Retour profils</a>
+  </div>
+
+  <div class="card" *ngIf="loading">Chargement…</div>
+  <div class="card" *ngIf="!loading && profile">
+    <p><strong>Prénom:</strong> {{ profile.firstName || 'N/A' }}</p>
+    <p><strong>Nom:</strong> {{ profile.lastName || 'N/A' }}</p>
+    <p><strong>Avatar URL:</strong> {{ profile.avatarUrl || 'N/A' }}</p>
+    <p><strong>Bio:</strong> {{ profile.bio || 'N/A' }}</p>
+  </div>
+</div>

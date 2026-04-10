@@ -1,107 +1,161 @@
 <div class="page-wrap">
   <div class="page-header">
-    <div><h1>Dashboard</h1><p>Vue globale de la plateforme KikEvent</p></div>
-    <div class="actions">
-      <a [routerLink]="['/validations']" class="btn btn-primary" *ngIf="stats.pendingValidations > 0">
-        {{ stats.pendingValidations }} validations en attente
+    <div>
+      <h1>Dashboard</h1>
+      <p>Vue globale en temps réel — données issues de l'API</p>
+    </div>
+    <div class="actions" *ngIf="pendingRequests > 0">
+      <a [routerLink]="['/organizer-requests']" class="btn btn-primary">
+        {{ pendingRequests }} demande(s) en attente
       </a>
     </div>
   </div>
 
-  <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px">
-    <div class="kpi-card">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <div class="kpi-icon" style="background:#EEEDFE"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5B4CF5" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
-        <span class="badge badge-purple">+12.4%</span>
-      </div>
-      <div class="kpi-value">{{ stats.totalUsers | number }}</div>
-      <div class="kpi-label">Utilisateurs inscrits</div>
-      <div class="kpi-change up">{{ stats.totalOrganizers }} organisateurs</div>
-    </div>
-    <div class="kpi-card">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <div class="kpi-icon" style="background:#E1F5EE"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
-        <span class="badge badge-success">+8.1%</span>
-      </div>
-      <div class="kpi-value">{{ stats.activeEvents }}</div>
-      <div class="kpi-label">Événements actifs</div>
-      <div class="kpi-change up">Ce mois</div>
-    </div>
-    <div class="kpi-card">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <div class="kpi-icon" style="background:#FAEEDA"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#854F0B" stroke-width="2"><path d="M2 9a3 3 0 010-6h20a3 3 0 010 6H2z"/><path d="M2 12h20M5 21h14a3 3 0 003-3v-9"/></svg></div>
-        <span class="badge badge-warning">+23.7%</span>
-      </div>
-      <div class="kpi-value">{{ stats.ticketsSold | number }}</div>
-      <div class="kpi-label">Billets vendus</div>
-      <div class="kpi-change up">Record du mois</div>
-    </div>
-    <div class="kpi-card">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <div class="kpi-icon" style="background:#FCEBEB"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A32D2D" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
-        <span class="badge badge-danger">-2.3%</span>
-      </div>
-      <div class="kpi-value">{{ (stats.totalRevenue / 1000000).toFixed(1) }}M FCFA</div>
-      <div class="kpi-label">Revenus générés</div>
-      <div class="kpi-change down">Vs mois dernier</div>
-    </div>
-  </div>
+  <div *ngIf="loading" class="empty-state"><p>Chargement des données…</p></div>
 
-  <div style="display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:14px">
-    <div class="card">
-      <div class="card-header">
-        <h3>Revenus mensuels 2025</h3>
-        <div style="display:flex;gap:12px">
-          <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:#6B7280"><span style="width:10px;height:10px;border-radius:2px;background:#5B4CF5;display:inline-block"></span>Revenus</span>
-          <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:#6B7280"><span style="width:10px;height:10px;border-radius:2px;background:#9FE1CB;display:inline-block"></span>Commissions</span>
+  <ng-container *ngIf="!loading">
+
+    <!-- KPI row -->
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:20px">
+      <div class="kpi-card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div class="kpi-icon" style="background:#EEEDFE">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5B4CF5" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+          </div>
+        </div>
+        <div class="kpi-value">{{ totalUsers | number }}</div>
+        <div class="kpi-label">Utilisateurs inscrits</div>
+        <div class="kpi-change up">{{ activeUsers }} actifs · {{ suspendedUsers }} suspendus</div>
+      </div>
+
+      <div class="kpi-card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div class="kpi-icon" style="background:#E1F5EE">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+        </div>
+        <div class="kpi-value">{{ approvedRequests }}</div>
+        <div class="kpi-label">Organisateurs approuvés</div>
+        <div class="kpi-change up">{{ totalOrganizers }} avec rôle ORGANIZER</div>
+      </div>
+
+      <div class="kpi-card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div class="kpi-icon" style="background:#FAEEDA">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#854F0B" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+        </div>
+        <div class="kpi-value">{{ pendingRequests }}</div>
+        <div class="kpi-label">Demandes en attente</div>
+        <div class="kpi-change" [class.down]="pendingRequests > 0" [class.up]="pendingRequests === 0">
+          {{ pendingRequests > 0 ? 'Action requise' : 'Tout traité ✓' }}
         </div>
       </div>
-      <div style="position:relative;width:100%;height:220px"><canvas #revenueChart></canvas></div>
+
+      <div class="kpi-card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div class="kpi-icon" style="background:#FCEBEB">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A32D2D" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+        </div>
+        <div class="kpi-value">{{ totalControlers }}</div>
+        <div class="kpi-label">Contrôleurs</div>
+        <div class="kpi-change up">{{ totalAdmins }} admin(s)</div>
+      </div>
     </div>
-    <div class="card">
-      <div class="card-header"><h3>Répartition par rôle</h3></div>
-      <div style="position:relative;width:100%;height:160px"><canvas #rolesChart></canvas></div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">
-        <ng-container *ngFor="let r of stats.usersByRole; let i = index">
-          <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:#6B7280">
-            <span style="width:8px;height:8px;border-radius:2px;display:inline-block"
-              [style.background]="('#5B4CF5,#1D9E75,#EF9F27,#378ADD').split(',')[i]"></span>
+
+    <!-- Tableaux + graphique -->
+    <div style="display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:14px;margin-bottom:14px">
+
+      <!-- Derniers utilisateurs -->
+      <div class="card" style="padding:0;overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid rgba(0,0,0,.08)">
+          <h3 style="font-size:14px;font-weight:600;margin:0">Derniers utilisateurs inscrits</h3>
+          <a [routerLink]="['/users']" style="font-size:12px;color:#5B4CF5">Voir tout →</a>
+        </div>
+        <div *ngIf="recentUsers.length === 0" class="empty-state" style="padding:24px"><p>Aucun utilisateur.</p></div>
+        <table class="ke-table" *ngIf="recentUsers.length > 0">
+          <thead><tr><th>Utilisateur</th><th>Email</th><th>Rôle(s)</th><th>Statut</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let u of recentUsers">
+              <td>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div style="width:28px;height:28px;border-radius:50%;background:#EEEDFE;color:#5B4CF5;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center">
+                    {{ initials(u.username) }}
+                  </div>
+                  <span style="font-size:13px">{{ u.username }}</span>
+                </div>
+              </td>
+              <td style="font-size:12px;color:#6B7280">{{ u.email }}</td>
+              <td style="font-size:12px">{{ roleNames(u) }}</td>
+              <td>
+                <span class="badge" [ngClass]="u.enabled ? 'badge-success' : 'badge-danger'">
+                  {{ u.enabled ? 'Actif' : 'Suspendu' }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Graphique répartition -->
+      <div class="card">
+        <div class="card-header"><h3>Répartition par rôle</h3></div>
+        <div *ngIf="usersByRole.length === 0" class="empty-state" style="min-height:160px"><p>Données insuffisantes</p></div>
+        <div *ngIf="usersByRole.length > 0" style="position:relative;width:100%;height:180px">
+          <canvas #rolesChart></canvas>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px" *ngIf="usersByRole.length > 0">
+          <span *ngFor="let r of usersByRole" style="display:flex;align-items:center;gap:4px;font-size:11px;color:#6B7280">
+            <span style="width:8px;height:8px;border-radius:2px;display:inline-block" [style.background]="r.color"></span>
             {{ r.role }} ({{ r.count }})
           </span>
-        </ng-container>
+        </div>
       </div>
     </div>
-  </div>
 
-  <div style="display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:14px">
-    <div class="card" style="padding:0;overflow:hidden">
+    <!-- Demandes en attente -->
+    <div class="card" style="padding:0;overflow:hidden" *ngIf="pendingList.length > 0">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid rgba(0,0,0,.08)">
-        <h3 style="font-size:14px;font-weight:600">Événements récents</h3>
-        <a [routerLink]="['/events']" style="font-size:12px;color:#5B4CF5">Voir tout →</a>
+        <h3 style="font-size:14px;font-weight:600;margin:0">
+          Demandes organisateurs en attente
+          <span class="badge badge-warning" style="margin-left:8px">{{ pendingRequests }}</span>
+        </h3>
+        <a [routerLink]="['/organizer-requests']" style="font-size:12px;color:#5B4CF5">Tout traiter →</a>
       </div>
       <table class="ke-table">
-        <thead><tr><th>Titre</th><th>Date</th><th>Billets</th><th>Statut</th></tr></thead>
+        <thead><tr><th>Demandeur</th><th>Type</th><th>Document</th><th>Date</th><th>Action</th></tr></thead>
         <tbody>
-          <tr><td>Soirée Jazz Yaoundé</td><td>15 Avr</td><td>248</td><td><span class="badge badge-success">Validé</span></td></tr>
-          <tr><td>Concert Afrobeats</td><td>22 Avr</td><td>512</td><td><span class="badge badge-warning">En attente</span></td></tr>
-          <tr><td>Tech Summit 2025</td><td>01 Mai</td><td>180</td><td><span class="badge badge-success">Validé</span></td></tr>
-          <tr><td>Festival Culturel</td><td>10 Mai</td><td>0</td><td><span class="badge badge-danger">Refusé</span></td></tr>
-          <tr><td>Nuit du Cinéma</td><td>18 Mai</td><td>95</td><td><span class="badge badge-warning">En attente</span></td></tr>
+          <tr *ngFor="let req of pendingList">
+            <td><strong>{{ req.profile.displayName }}</strong></td>
+            <td>
+              <span class="badge badge-purple" style="font-size:10px">
+                {{ req.profile.type === 'COMPANY' ? 'Entreprise' : 'Individuel' }}
+              </span>
+            </td>
+            <td style="font-size:12px;color:#6B7280">{{ req.document.documentType }}</td>
+            <td style="font-size:12px;color:#9CA3AF">{{ req.createdAt | date:'dd/MM/yyyy' }}</td>
+            <td><a [routerLink]="['/organizer-requests']" class="btn btn-sm btn-primary">Traiter</a></td>
+          </tr>
         </tbody>
       </table>
     </div>
-    <div class="card">
-      <div class="card-header"><h3>Activité récente</h3></div>
-      <div>
-        <div *ngFor="let a of stats.recentActivity" style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid rgba(0,0,0,.06)">
-          <div style="width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px"
-               [style.background]="aIcon(a.type).bg" [style.color]="aIcon(a.type).color">●</div>
-          <div style="flex:1">
-            <p style="font-size:12px;color:#1A1A2E">{{ a.description }}</p>
-            <p style="font-size:10px;color:#9CA3AF;margin-top:2px">{{ a.timestamp | date:'dd/MM/yyyy HH:mm' }}</p>
-          </div>
+
+    <!-- Bandeau endpoints à venir -->
+    <div class="card" style="background:linear-gradient(135deg,#EEEDFE,#E1F5EE);border:none;margin-top:14px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:40px;height:40px;border-radius:10px;background:#5B4CF5;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div>
+          <p style="font-size:13px;font-weight:600;color:#1A1A2E;margin:0">Statistiques avancées — en attente du backend</p>
+          <p style="font-size:12px;color:#6B7280;margin:2px 0 0">
+            Les endpoints <code>/admin/stats</code>, <code>/admin/events</code>, <code>/admin/freemium</code> et
+            <code>/admin/notifications</code> seront intégrés dès leur déploiement.
+          </p>
         </div>
       </div>
     </div>
-  </div>
+
+  </ng-container>
 </div>

@@ -1,92 +1,219 @@
 <div class="page-wrap">
-  <div class="page-header"><div><h1>Annuaire des Comptes</h1><p>Gestion des utilisateurs de la plateforme</p></div></div>
-  <div class="filter-bar">
-    <div class="search-wrap">
-      <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="text" placeholder="Rechercher…" [(ngModel)]="searchTerm" (input)="page=0;load()">
-    </div>
-    <select [(ngModel)]="selectedRole" (change)="page=0;load()">
-      <option value="">Tous les rôles</option>
-      <option value="ADMIN">Admin</option>
-      <option value="ORGANIZER">Organisateur</option>
-      <option value="CONTROLER">Contrôleur</option>
-      <option value="PARTICIPANT">Participant</option>
-    </select>
+  <div class="page-header">
+    <div><h1>Gestion des Utilisateurs</h1><p>{{ total | number }} utilisateur(s) au total</p></div>
   </div>
+
   <div class="card" style="padding:0;overflow:hidden">
     <div *ngIf="loading" class="loading-row">Chargement…</div>
-    <table class="ke-table" *ngIf="!loading">
-      <thead><tr><th>#</th><th>Utilisateur</th><th>Email</th><th>Rôle</th><th>Statut</th><th>Inscrit le</th><th>Actions</th></tr></thead>
+
+    <div *ngIf="!loading && users.length === 0" class="empty-state" style="padding:40px">
+      <p>Aucun utilisateur trouvé.</p>
+    </div>
+
+    <table class="ke-table" *ngIf="!loading && users.length > 0">
+      <thead>
+        <tr><th>#</th><th>Utilisateur</th><th>Email</th><th>Rôle(s)</th><th>Statut</th><th>Inscrit le</th><th>Actions</th></tr>
+      </thead>
       <tbody>
         <tr *ngFor="let u of users; let i = index">
-          <td style="color:#9CA3AF">{{ page*size+i+1 }}</td>
-          <td><div style="display:flex;align-items:center;gap:10px">
-            <div style="width:32px;height:32px;border-radius:50%;background:#EEEDFE;color:#5B4CF5;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">{{ u.username.substring(0,2).toUpperCase() }}</div>
-            {{ u.username }}
-          </div></td>
-          <td>{{ u.email }}</td>
-          <td><span class="role-pill {{ getRoleName(u) }}">{{ getRoleName(u) }}</span></td>
-          <td><span class="badge" [ngClass]="u.enabled ? 'badge-success' : 'badge-danger'">{{ u.enabled ? 'Actif' : 'Suspendu' }}</span></td>
+          <td style="color:#9CA3AF">{{ page * size + i + 1 }}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:32px;height:32px;border-radius:50%;background:#EEEDFE;color:#5B4CF5;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">
+                {{ initials(u.username) }}
+              </div>
+              <span style="font-weight:500">{{ u.username }}</span>
+            </div>
+          </td>
+          <td style="font-size:13px;color:#6B7280">{{ u.email }}</td>
+          <td>
+            <div style="display:flex;flex-wrap:wrap;gap:4px">
+              <span *ngFor="let r of u.roles" class="badge badge-purple" style="font-size:10px">{{ r.name }}</span>
+              <span *ngIf="!u.roles || !u.roles.length" style="font-size:12px;color:#9CA3AF">Aucun</span>
+            </div>
+          </td>
+          <td>
+            <span class="badge" [ngClass]="u.enabled ? 'badge-success' : 'badge-danger'">
+              {{ u.enabled ? 'Actif' : 'Suspendu' }}
+            </span>
+          </td>
           <td style="font-size:12px;color:#9CA3AF">{{ u.createdAt | date:'dd/MM/yyyy' }}</td>
           <td>
             <div class="action-btns">
-              <button *ngIf="u.enabled" class="btn btn-sm btn-danger" (click)="openSuspend(u)">Suspendre</button>
-              <button *ngIf="!u.enabled" class="btn btn-sm btn-success" (click)="confirmActivate(u)">Réactiver</button>
-              <button class="btn btn-sm btn-ghost" (click)="openReset(u)">Reset</button>
-              <button class="btn btn-sm btn-ghost" (click)="openRole(u)">Rôle</button>
+              <button class="btn btn-sm btn-ghost"    (click)="openDetail(u)">Détail</button>
+              <a class="btn btn-sm btn-ghost" [routerLink]="['/users', u.id]">Page</a>
+              <button *ngIf="u.enabled"  class="btn btn-sm btn-danger"  (click)="openSuspend(u)">Suspendre</button>
+              <button *ngIf="!u.enabled" class="btn btn-sm btn-success" (click)="openActivate(u)">Réactiver</button>
+              <button class="btn btn-sm btn-ghost"    (click)="openReset(u)">MDP</button>
+              <button class="btn btn-sm btn-ghost"    (click)="openAssignRole(u)">+ Rôle</button>
+              <button *ngIf="u.roles && u.roles.length" class="btn btn-sm btn-ghost" (click)="openRemoveRole(u)">– Rôle</button>
             </div>
           </td>
         </tr>
       </tbody>
     </table>
-    <div class="pagination" style="padding:12px 16px">
+
+    <div class="pagination" style="padding:12px 16px" *ngIf="!loading">
       <span>{{ users.length }} / {{ total }} résultats</span>
       <div class="page-btns">
-        <button (click)="page=page-1;load()" [disabled]="page===0">‹</button>
-        <button class="active">{{ page+1 }}</button>
-        <button (click)="page=page+1;load()" [disabled]="(page+1)*size>=total">›</button>
+        <button (click)="page = page - 1; load()" [disabled]="page === 0">‹</button>
+        <button class="active">{{ page + 1 }} / {{ totalPages }}</button>
+        <button (click)="page = page + 1; load()" [disabled]="(page + 1) * size >= total">›</button>
       </div>
     </div>
   </div>
 </div>
 
-<div class="modal-overlay" *ngIf="showSuspend">
-  <div class="modal-box">
-    <div class="modal-header"><h2>Suspendre le compte</h2><button class="modal-close" (click)="showSuspend=false">✕</button></div>
-    <p style="font-size:13px;color:#6B7280;margin-bottom:16px">Compte de <strong>{{ selectedUser?.username }}</strong>. Un email de notification sera envoyé avec le motif.</p>
-    <div class="form-group"><label>Motif <span style="color:#E24B4A">*</span></label>
-      <textarea [(ngModel)]="suspendMotif" rows="3" placeholder="Ex: Activité frauduleuse détectée…"></textarea>
+<!-- ── Modale: Détail ─────────────────────────────────────────────── -->
+<div class="modal-overlay" *ngIf="showDetail && selectedUser" (click)="close()">
+  <div class="modal-box" style="max-width:480px" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Détail utilisateur</h2>
+      <button class="modal-close" (click)="close()">✕</button>
+    </div>
+    <div style="padding:16px">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
+        <div style="width:52px;height:52px;border-radius:50%;background:#EEEDFE;color:#5B4CF5;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          {{ initials(selectedUser.username) }}
+        </div>
+        <div>
+          <p style="font-weight:600;font-size:15px;margin:0">{{ selectedUser.username }}</p>
+          <p style="font-size:12px;color:#6B7280;margin:2px 0">{{ selectedUser.email }}</p>
+        </div>
+        <span class="badge" style="margin-left:auto" [ngClass]="selectedUser.enabled ? 'badge-success' : 'badge-danger'">
+          {{ selectedUser.enabled ? 'Actif' : 'Suspendu' }}
+        </span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div style="background:#F9FAFB;border-radius:8px;padding:12px">
+          <p style="font-size:10px;color:#9CA3AF;margin:0 0 4px">ID</p>
+          <p style="font-size:14px;font-weight:700;color:#5B4CF5;margin:0">{{ selectedUser.id }}</p>
+        </div>
+        <div style="background:#F9FAFB;border-radius:8px;padding:12px">
+          <p style="font-size:10px;color:#9CA3AF;margin:0 0 4px">Inscrit le</p>
+          <p style="font-size:13px;font-weight:600;margin:0">{{ selectedUser.createdAt | date:'dd/MM/yyyy' }}</p>
+        </div>
+        <div style="background:#F9FAFB;border-radius:8px;padding:12px;grid-column:1/-1">
+          <p style="font-size:10px;color:#9CA3AF;margin:0 0 6px">Rôles</p>
+          <div style="display:flex;flex-wrap:wrap;gap:4px">
+            <span *ngFor="let r of selectedUser.roles" class="badge badge-purple">{{ r.name }}</span>
+            <span *ngIf="!selectedUser.roles || !selectedUser.roles.length" style="font-size:12px;color:#9CA3AF">Aucun rôle</span>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" (click)="showSuspend=false">Annuler</button>
+      <button class="btn btn-ghost" (click)="close()">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modale: Suspendre ──────────────────────────────────────────── -->
+<div class="modal-overlay" *ngIf="showSuspend && selectedUser" (click)="close()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Suspendre le compte</h2>
+      <button class="modal-close" (click)="close()">✕</button>
+    </div>
+    <p style="font-size:13px;color:#6B7280;margin-bottom:16px">
+      Le compte de <strong>{{ selectedUser.username }}</strong> sera désactivé immédiatement.
+    </p>
+    <div class="form-group">
+      <label>Motif <span style="color:#E24B4A">*</span></label>
+      <textarea [(ngModel)]="suspendMotif" rows="3" placeholder="Ex: Activité frauduleuse…"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" (click)="close()">Annuler</button>
       <button class="btn btn-danger" (click)="confirmSuspend()" [disabled]="!suspendMotif.trim()">Confirmer</button>
     </div>
   </div>
 </div>
 
-<div class="modal-overlay" *ngIf="showReset">
-  <div class="modal-box">
-    <div class="modal-header"><h2>Réinitialiser l'accès</h2><button class="modal-close" (click)="showReset=false">✕</button></div>
-    <p style="font-size:13px;color:#6B7280;margin-bottom:20px">Un email de réinitialisation sera envoyé à <strong>{{ selectedUser?.email }}</strong>.</p>
+<!-- ── Modale: Réactiver ──────────────────────────────────────────── -->
+<div class="modal-overlay" *ngIf="showActivate && selectedUser" (click)="close()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Réactiver le compte</h2>
+      <button class="modal-close" (click)="close()">✕</button>
+    </div>
+    <p style="font-size:13px;color:#6B7280;margin-bottom:20px">
+      Le compte de <strong>{{ selectedUser.username }}</strong> sera réactivé et l'utilisateur pourra se reconnecter.
+    </p>
     <div class="modal-footer">
-      <button class="btn btn-ghost" (click)="showReset=false">Annuler</button>
-      <button class="btn btn-primary" (click)="confirmReset()">Envoyer</button>
+      <button class="btn btn-ghost" (click)="close()">Annuler</button>
+      <button class="btn btn-success" (click)="confirmActivate()">Réactiver</button>
     </div>
   </div>
 </div>
 
-<div class="modal-overlay" *ngIf="showRole">
-  <div class="modal-box">
-    <div class="modal-header"><h2>Changer le rôle</h2><button class="modal-close" (click)="showRole=false">✕</button></div>
-    <div class="form-group" style="margin-bottom:0"><label>Nouveau rôle</label>
-      <select [(ngModel)]="newRole">
-        <option value="ADMIN">Administrateur</option><option value="ORGANIZER">Organisateur</option>
-        <option value="CONTROLER">Contrôleur</option><option value="PARTICIPANT">Participant</option>
+<!-- ── Modale: Reset mot de passe ─────────────────────────────────── -->
+<div class="modal-overlay" *ngIf="showReset && selectedUser" (click)="close()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Réinitialiser le mot de passe</h2>
+      <button class="modal-close" (click)="close()">✕</button>
+    </div>
+    <p style="font-size:13px;color:#6B7280;margin-bottom:16px">
+      Nouveau mot de passe pour <strong>{{ selectedUser.email }}</strong> (min. 8 caractères)
+    </p>
+    <div class="form-group">
+      <label>Nouveau mot de passe <span style="color:#E24B4A">*</span></label>
+      <input type="password" [(ngModel)]="newPassword" placeholder="Minimum 8 caractères">
+    </div>
+    <div class="form-group" style="margin-bottom:0">
+      <label>Confirmer</label>
+      <input type="password" [(ngModel)]="confirmPassword" placeholder="Répéter">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" (click)="close()">Annuler</button>
+      <button class="btn btn-primary" (click)="confirmReset()" [disabled]="!newPassword">Réinitialiser</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modale: Assigner rôle ───────────────────────────────────────── -->
+<div class="modal-overlay" *ngIf="showAssignRole && selectedUser" (click)="close()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Assigner un rôle</h2>
+      <button class="modal-close" (click)="close()">✕</button>
+    </div>
+    <p style="font-size:13px;color:#6B7280;margin-bottom:12px">
+      Rôles actuels de <strong>{{ selectedUser.username }}</strong> : {{ roleNames(selectedUser) }}
+    </p>
+    <div class="form-group" style="margin-bottom:0">
+      <label>Rôle à ajouter</label>
+      <select [(ngModel)]="roleToAssign">
+        <option value="" disabled>Choisir…</option>
+        <option *ngFor="let r of ROLES" [value]="r">{{ r }}</option>
       </select>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" (click)="showRole=false">Annuler</button>
-      <button class="btn btn-primary" (click)="confirmRole()">Confirmer</button>
+      <button class="btn btn-ghost" (click)="close()">Annuler</button>
+      <button class="btn btn-primary" (click)="confirmAssignRole()" [disabled]="!roleToAssign">Assigner</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modale: Retirer rôle ────────────────────────────────────────── -->
+<div class="modal-overlay" *ngIf="showRemoveRole && selectedUser" (click)="close()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Retirer un rôle</h2>
+      <button class="modal-close" (click)="close()">✕</button>
+    </div>
+    <p style="font-size:13px;color:#6B7280;margin-bottom:12px">
+      Rôles de <strong>{{ selectedUser.username }}</strong> : {{ roleNames(selectedUser) }}
+    </p>
+    <div class="form-group" style="margin-bottom:0">
+      <label>Rôle à retirer</label>
+      <select [(ngModel)]="roleToRemove">
+        <option *ngFor="let r of selectedUser.roles" [value]="r.name">{{ r.name }}</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" (click)="close()">Annuler</button>
+      <button class="btn btn-danger" (click)="confirmRemoveRole()" [disabled]="!roleToRemove">Retirer</button>
     </div>
   </div>
 </div>

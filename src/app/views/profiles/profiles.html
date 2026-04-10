@@ -1,0 +1,45 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div><h1>Profils utilisateurs</h1><p>{{ total }} profil(s)</p></div>
+  </div>
+
+  <div class="card" style="padding:0;overflow:hidden">
+    <div *ngIf="loading" class="loading-row">Chargement…</div>
+    <div *ngIf="!loading && profiles.length === 0" class="empty-state" style="padding:40px">Aucun profil</div>
+
+    <table class="ke-table" *ngIf="!loading && profiles.length > 0">
+      <thead>
+        <tr><th>User ID</th><th>Nom</th><th>Avatar</th><th>Bio</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let p of profiles">
+          <td>#{{ p.userId }}</td>
+          <td>{{ (p.firstName || '') + ' ' + (p.lastName || '') || 'N/A' }}</td>
+          <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis">{{ p.avatarUrl || 'N/A' }}</td>
+          <td style="max-width:320px;overflow:hidden;text-overflow:ellipsis">{{ p.bio || 'N/A' }}</td>
+          <td>
+            <div class="action-btns">
+              <a class="btn btn-sm btn-ghost" [routerLink]="['/profiles', p.userId]">Détails</a>
+              <button class="btn btn-sm btn-primary" (click)="openEdit(p)">Éditer</button>
+              <button class="btn btn-sm btn-danger" (click)="remove(p)">Supprimer</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal-overlay" *ngIf="showEdit && selected" (click)="close()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+    <div class="modal-header"><h2>Éditer profil #{{ selected.userId }}</h2><button class="modal-close" (click)="close()">✕</button></div>
+    <div class="form-group"><label>Prénom</label><input [(ngModel)]="form.firstName" type="text"></div>
+    <div class="form-group"><label>Nom</label><input [(ngModel)]="form.lastName" type="text"></div>
+    <div class="form-group"><label>Avatar URL</label><input [(ngModel)]="form.avatarUrl" type="text"></div>
+    <div class="form-group"><label>Bio</label><textarea [(ngModel)]="form.bio" rows="3"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" (click)="close()">Annuler</button>
+      <button class="btn btn-primary" (click)="save()">Enregistrer</button>
+    </div>
+  </div>
+</div>
