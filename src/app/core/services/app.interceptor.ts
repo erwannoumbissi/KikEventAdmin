@@ -74,14 +74,6 @@ function handleHttpError(
     // Erreur réseau côté client
     message = 'Erreur réseau - Vérifiez votre connexion';
   } else {
-    const reqUrl = error.url ?? '';
-    const isExpectedProfile404 =
-      error.status === 404 &&
-      (reqUrl.includes('/api/v1/profiles/me') || reqUrl.includes('/api/v1/admin/profiles/'));
-    if (isExpectedProfile404) {
-      return throwError(() => error);
-    }
-
     // Erreur serveur (HTTP status)
     switch (error.status) {
       case 0:
@@ -96,7 +88,6 @@ function handleHttpError(
       case 401:
         message = error.error?.message || 'Session expirée - Reconnexion requise';
         // Redirige vers login car le token est invalide/expiré
-        UserHelper.logoutUser();
         router.navigate(['/login']);
         break;
 
@@ -123,7 +114,7 @@ function handleHttpError(
 
       case 500:
         type = 'danger';
-        message = 'Erreur serveur interne (500)';
+        message = error.error?.message || 'Erreur serveur interne (500)';
         break;
 
       case 503:
@@ -138,4 +129,3 @@ function handleHttpError(
   toastService.show(type, message, timeout);
   return throwError(() => error);
 }
-

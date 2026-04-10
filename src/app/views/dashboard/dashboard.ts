@@ -1,14 +1,12 @@
 import { Component, inject, OnInit, AfterViewInit, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { forkJoin, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
-import { Chart, registerables } from 'chart.js';
 import { AdminService } from '../../core/services/admin.service';
-import { User } from '../../core/models/user/User.model';
-import { OrganizerRequest } from '../../core/models/organizer/organizer.model';
-import { extractContent } from '../../shared/helpers/api.helper';
-
+import { ResponseType } from '../../core/models/api_resp.model';
+import { DashboardStats } from '../../core/models/kikevent.models';
+import { Chart, registerables } from 'chart.js';
+import { catchError, finalize, of } from 'rxjs';
+import { environment } from '../../../environments/environment';
 Chart.register(...registerables);
 
 @Component({
@@ -19,112 +17,266 @@ Chart.register(...registerables);
   styleUrls: ['./dashboard.scss']
 })
 export class DashboardComponent implements OnInit, AfterViewInit {
-  @ViewChild('rolesChart') rolesRef!: ElementRef<HTMLCanvasElement>;
+
+  @ViewChild('revenueChart') rcRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('rolesChart') rdRef!: ElementRef<HTMLCanvasElement>;
 
   private svc = inject(AdminService);
 
-  loading      = true;
-  chartsReady  = false;
-  chartDrawn   = false;
+  stats: DashboardStats = this.getEmptyStats();
+  loading = true;
+  chartsReady = false;
 
-  // Compteurs calculés depuis les vraies données
-  totalUsers        = 0;
-  activeUsers       = 0;
-  suspendedUsers    = 0;
-  totalOrganizers   = 0;
-  totalParticipants = 0;
-  totalAdmins       = 0;
-  totalControlers   = 0;
-  pendingRequests   = 0;
-  approvedRequests  = 0;
-  rejectedRequests  = 0;
 
-  recentUsers    : User[]              = [];
-  pendingList    : OrganizerRequest[]  = [];
-  usersByRole    : { role: string; count: number; color: string }[] = [];
+
+  // ngOnInit(): void {
+  //   this.svc.getDashboardStats()
+  //     .pipe(
+  //       catchError((err) => {
+  //         console.warn('API indisponible → mock data utilisée', err);
+
+  //         // ✅ retourne une réponse simulée
+  //         return of({
+  //           data: this.getMockStats()
+  //         } as ResponseType<any>);
+  //       }),
+
+  //       finalize(() => {
+  //         this.loading = false;
+
+  //         if (this.chartsReady) {
+  //           setTimeout(() => this.render(), 0);
+  //         }
+  //       })
+  //     )
+  //     .subscribe((r: ResponseType<any>) => {
+
+  //       const data = r?.data;
+
+  //       // ✅ fallback propre même si data = null
+  //       if (!data) {
+  //         this.stats = this.getMockStats();
+  //         return;
+  //       }
+
+  //       this.stats = {
+  //         ...this.getEmptyStats(),
+  //         ...data,
+  //         monthlyRevenue: data.monthlyRevenue ?? [],
+  //         revenueLabels: data.revenueLabels ?? [],
+  //         usersByRole: data.usersByRole ?? [],
+  //         recentActivity: data.recentActivity ?? []
+  //       };
+  //     });
+  // }
 
   ngOnInit(): void {
-    forkJoin({
-      users : this.svc.getUsers().pipe(catchError(() => of(null))),
-      reqs  : this.svc.getOrganizerRequests().pipe(catchError(() => of(null)))
-    }).subscribe({
-      next: ({ users, reqs }) => {
-        if (users?.data) {
-          const list = extractContent<User>(users.data as any);
-          this.totalUsers     = (users.data as any).totalElements ?? list.length;
-          this.activeUsers    = list.filter(u => u.enabled).length;
-          this.suspendedUsers = list.filter(u => !u.enabled).length;
-          this.recentUsers    = list.slice(0, 6);
 
-          let adm = 0, org = 0, ctrl = 0, part = 0;
-          list.forEach(u => {
-            const names = (u.roles ?? []).map(r => r.name);
-            if (names.includes('ADMIN'))       adm++;
-            if (names.includes('ORGANIZER'))   org++;
-            if (names.includes('CONTROLER'))   ctrl++;
-            if (names.includes('PARTICIPANT')) part++;
-          });
-          this.totalAdmins       = adm;
-          this.totalOrganizers   = org;
-          this.totalControlers   = ctrl;
-          this.totalParticipants = part;
-          this.usersByRole = [
-            { role: 'Admins',        count: adm,  color: '#5B4CF5' },
-            { role: 'Organisateurs', count: org,  color: '#1D9E75' },
-            { role: 'Contrôleurs',   count: ctrl, color: '#EF9F27' },
-            { role: 'Participants',  count: part, color: '#378ADD' }
-          ].filter(r => r.count > 0);
+    // 🔥 MODE MOCK
+    if (environment.useMock) {
+      console.warn('⚠️ MODE MOCK ACTIVÉ');
+
+      this.stats = this.getMockStats();
+      this.loading = false;
+
+      if (this.chartsReady) {
+        setTimeout(() => this.render(), 0);
+      }
+
+      return;
+    }
+
+    // 🚀 MODE API
+    this.svc.getDashboardStats()
+      .pipe(
+        catchError((err) => {
+          console.warn('API indisponible → fallback mock', err);
+
+          return of({
+            data: this.getMockStats()
+          } as ResponseType<any>);
+        }),
+
+        finalize(() => {
+          this.loading = false;
+
+          if (this.chartsReady) {
+            setTimeout(() => this.render(), 0);
+          }
+        })
+      )
+      .subscribe((r: ResponseType<any>) => {
+
+        const data = r?.data;
+
+        if (!data) {
+          this.stats = this.getMockStats();
+          return;
         }
 
-        if (reqs?.data) {
-          const list = extractContent<OrganizerRequest>(reqs.data as any);
-          this.pendingRequests  = list.filter(r => r.status === 'PENDING').length;
-          this.approvedRequests = list.filter(r => r.status === 'APPROVED').length;
-          this.rejectedRequests = list.filter(r => r.status === 'REJECTED').length;
-          this.pendingList      = list.filter(r => r.status === 'PENDING').slice(0, 5);
-        }
-
-        this.loading = false;
-        if (this.chartsReady) { this.renderChart(); }
-      },
-      error: () => { this.loading = false; }
-    });
+        this.stats = {
+          ...this.getEmptyStats(),
+          ...data,
+          monthlyRevenue: data.monthlyRevenue ?? [],
+          revenueLabels: data.revenueLabels ?? [],
+          usersByRole: data.usersByRole ?? [],
+          recentActivity: data.recentActivity ?? []
+        };
+      });
   }
 
   ngAfterViewInit(): void {
     this.chartsReady = true;
-    if (!this.loading) { this.renderChart(); }
+
+    setTimeout(() => {
+      if (!this.loading) this.render();
+    }, 300);
   }
 
-  private renderChart(): void {
-    if (this.chartDrawn || !this.rolesRef?.nativeElement || !this.usersByRole.length) { return; }
-    this.chartDrawn = true;
+  private render(): void {
+
+    if (!this.rcRef || !this.rdRef) return; // ✅ sécurité
+
     const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const ticks  = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)';
-    new Chart(this.rolesRef.nativeElement, {
-      type: 'doughnut',
+    const grid = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+    const ticks = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)';
+
+    // ✅ destroy old charts
+    Chart.getChart(this.rcRef.nativeElement)?.destroy();
+    Chart.getChart(this.rdRef.nativeElement)?.destroy();
+
+    // 📊 REVENUE CHART
+    new Chart(this.rcRef.nativeElement, {
+      type: 'bar',
       data: {
-        labels: this.usersByRole.map(r => r.role),
-        datasets: [{
-          data: this.usersByRole.map(r => r.count),
-          backgroundColor: this.usersByRole.map(r => r.color),
-          borderWidth: 0
-        }]
+        labels: this.stats.revenueLabels,
+        datasets: [
+          {
+            label: 'Revenus',
+            data: this.stats.monthlyRevenue,
+            backgroundColor: '#5B4CF5',
+            borderRadius: 5,
+            barPercentage: 0.6
+          },
+          {
+            label: 'Commissions',
+            data: this.stats.monthlyRevenue.map(v => +(v * 0.05).toFixed(1)),
+            backgroundColor: '#9FE1CB',
+            borderRadius: 5,
+            barPercentage: 0.6
+          }
+        ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        cutout: '70%',
-        plugins: { legend: { position: 'bottom', labels: { color: ticks, font: { size: 11 }, padding: 12 } } }
+        plugins: { legend: { display: false } },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { color: ticks, font: { size: 11 } }
+          },
+          y: {
+            grid: { color: grid },
+            ticks: {
+              color: ticks,
+              font: { size: 11 },
+              callback: (v) => typeof v === 'number' ? v + 'k' : v
+            },
+            border: { display: false }
+          }
+        }
+      }
+    });
+
+    // 🍩 ROLE CHART
+    const roles = this.stats.usersByRole;
+
+    new Chart(this.rdRef.nativeElement, {
+      type: 'doughnut',
+      data: {
+        labels: roles.map(r => r.role),
+        datasets: [
+          {
+            data: roles.map(r => r.count),
+            backgroundColor: ['#5B4CF5', '#1D9E75', '#EF9F27', '#378ADD'],
+            borderWidth: 0
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '68%',
+        plugins: { legend: { display: false } }
       }
     });
   }
 
-  initials(name: string): string {
-    return (name || '?').substring(0, 2).toUpperCase();
+  private getEmptyStats(): DashboardStats {
+    return {
+      totalUsers: 0,
+      totalOrganizers: 0,
+      totalParticipants: 0,
+      activeEvents: 0,
+      ticketsSold: 0,
+      totalRevenue: 0,
+      pendingValidations: 0,
+      monthlyRevenue: [],
+      revenueLabels: [],
+      usersByRole: [],
+      recentActivity: []
+    };
   }
 
-  roleNames(user: User): string {
-    return (user.roles ?? []).map(r => r.name).join(', ') || 'Aucun';
+  private getMockStats(): DashboardStats {
+    return {
+      totalUsers: 1240,
+      totalOrganizers: 87,
+      totalParticipants: 1153,
+      activeEvents: 42,
+      ticketsSold: 8920,
+      totalRevenue: 12500000,
+      pendingValidations: 6,
+      monthlyRevenue: [120, 180, 240, 300, 260, 310],
+      revenueLabels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+      usersByRole: [
+        { role: 'PARTICIPANT', count: 1100 },
+        { role: 'ORGANIZER', count: 87 },
+        { role: 'ADMIN', count: 5 },
+        { role: 'CONTROLER', count: 48 }
+      ],
+      recentActivity: [
+        {
+          id: 1,
+          type: 'USER_REGISTERED',
+          description: 'Nouvel utilisateur inscrit',
+          timestamp: '2025-04-10T10:00:00Z'
+        },
+        {
+          id: 2,
+          type: 'EVENT_VALIDATED',
+          description: 'Événement validé par admin',
+          timestamp: '2025-04-10T09:30:00Z'
+        },
+        {
+          id: 3,
+          type: 'TICKET_REFUNDED',
+          description: 'Remboursement effectué',
+          timestamp: '2025-04-10T08:15:00Z'
+        }
+      ]
+    };
+  }
+
+  // 🎨 ICON MAPPING
+  aIcon(type: string) {
+    const map: any = {
+      USER_REGISTERED: { bg: '#e6f0ff', color: '#3498db' },
+      EVENT_VALIDATED: { bg: '#e6ffed', color: '#2ecc71' },
+      TICKET_REFUNDED: { bg: '#ffe6e6', color: '#e74c3c' }
+    };
+
+    return map[type] || { bg: '#eee', color: '#333' };
   }
 }

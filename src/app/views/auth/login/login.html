@@ -36,14 +36,8 @@
           <span *ngIf="!loading">Se connecter</span>
           <span *ngIf="loading" class="spin"></span>
         </button>
-        <button type="button" class="submit-btn btn-google" [disabled]="loading" (click)="loginWithGoogle()">
-          Continuer avec Google
-        </button>
       </form>
-      <p class="sec-note">
-        Connexion sécurisée HTTPS · KikEvent Admin v1.0<br>
-        <a routerLink="/register" style="color:#5B4CF5">Créer un compte</a>
-      </p>
+      <p class="sec-note">Connexion sécurisée HTTPS · KikEvent Admin v1.0</p>
     </div>
   </div>
 </div>

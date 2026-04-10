@@ -1,15 +1,13 @@
 /**
- * Modèles Organizer — alignés sur les tables:
- *   organizer_profiles, legal_documents, company_details
+ * Modèles pour les demandes organizer
  */
 
-export type OrganizerType           = 'INDIVIDUAL' | 'COMPANY';
-export type OrganizerRequestStatus  = 'PENDING' | 'APPROVED' | 'REJECTED';
-export type DocumentStatus          = 'PENDING' | 'APPROVED' | 'REJECTED';
+export type OrganizerType = 'INDIVIDUAL' | 'COMPANY';
+export type OrganizerRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+export type DocumentStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
-/** Table company_details */
+/** Détails d'une entreprise */
 export interface CompanyDetails {
-  id?: number;
   legalName: string;
   registrationNumber: string;
   taxIdentificationNumber: string;
@@ -17,50 +15,43 @@ export interface CompanyDetails {
   contactEmail: string;
   phoneNumber: string;
   legalRepresentativeName: string;
-  createdAt?: string;
-  updatedAt?: string;
 }
 
-/** Table organizer_profiles */
+/** Profil organisateur (individu ou entreprise) */
 export interface OrganizerProfile {
   id: number;
   userId: number;
   type: OrganizerType;
   displayName: string;
   biography: string;
-  websiteUrl: string | null;
+  websiteUrl?: string;
+  companyDetails?: CompanyDetails;
   isVerified: boolean;
-  rating: number | null;
-  companyDetails: CompanyDetails | null;
   createdAt: string;
-  updatedAt: string | null;
+  updatedAt?: string;
 }
 
-/** Table legal_documents */
+/** Document justificatif */
 export interface OrganizerDocument {
   id: number;
-  organizerProfileId: number;
-  documentType: string;
+  requestId: number;
+  documentType: string; // ex: 'CNI', 'RCCM', 'PASSPORT'
   fileUrl: string;
-  documentNumber: string | null;
+  documentNumber: string;
   status: DocumentStatus;
-  rejectionReason: string | null;
-  uploadedAt: string | null;
+  rejectionReason?: string | null;
   createdAt: string;
-  updatedAt: string | null;
+  updatedAt?: string;
 }
 
-/**
- * Demande organizer complète
- * Retournée par GET /admin/organizer-requests et GET /admin/organizer-requests/{userId}
- */
+/** Demande organizer complète */
 export interface OrganizerRequest {
   id: number;
   userId: number;
   profile: OrganizerProfile;
   document: OrganizerDocument;
   status: OrganizerRequestStatus;
-  rejectionReason: string | null;
+  rejectionReason?: string | null;
   createdAt: string;
-  updatedAt: string | null;
+  updatedAt?: string;
 }

@@ -8,5 +8,6 @@ export const environment = {
   apiUrl: 'https://api.vps.jbis.cm/api/v1',
 
   appName: 'KikEvent Admin',
-  version: '1.0.0'
+  version: '1.0.0',
+  useMock: true
 };

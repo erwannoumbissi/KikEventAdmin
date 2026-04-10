@@ -3,8 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminService } from '../../core/services/admin.service';
 import { ToastService } from '../../shared/components/toast/service/toast.service';
-import { OrganizerRequest } from '../../core/models/organizer/organizer.model';
-import { extractContent } from '../../shared/helpers/api.helper';
 
 @Component({
   selector: 'app-validations',
@@ -14,75 +12,89 @@ import { extractContent } from '../../shared/helpers/api.helper';
   styleUrls: ['./validations.scss']
 })
 export class ValidationsComponent implements OnInit {
-  private svc   = inject(AdminService);
-  private toast = inject(ToastService);
+  protected svc   = inject(AdminService);
+  protected toast = inject(ToastService);
 
-  all      : OrganizerRequest[] = [];
-  displayed: OrganizerRequest[] = [];
-  loading  = false;
-
+  all: any[] = [];
+  requests: any[] = [];
+  loading = false;
   activeTab: 'PENDING' | 'APPROVED' | 'REJECTED' = 'PENDING';
+  selected: any | null = null;
+  showPanel = false;
+  showReject = false;
+  rejectMotif = '';
+  rejectTarget: any | null = null;
 
   tabs = [
-    { key: 'PENDING'  as const, label: 'En attente',  count: 0 },
-    { key: 'APPROVED' as const, label: 'Approuvées',  count: 0 },
-    { key: 'REJECTED' as const, label: 'Rejetées',    count: 0 }
+    { key: 'PENDING',  label: 'En attente',  count: 0 },
+    { key: 'APPROVED', label: 'Approuvées',  count: 0 },
+    { key: 'REJECTED', label: 'Rejetées',    count: 0 }
   ];
 
-  showPanel  = false;
-  showReject = false;
-  selected   : OrganizerRequest | null = null;
-  rejectMotif = '';
+  ngOnInit(): void { this.loadAll(); }
 
-  ngOnInit(): void { this.load(); }
-
-  load(): void {
+  loadAll(): void {
     this.loading = true;
+    // GET /admin/organizer-requests
     this.svc.getOrganizerRequests().subscribe({
       next: r => {
-        this.all = extractContent<OrganizerRequest>(r.data as any);
-        this.tabs[0].count = this.all.filter(x => x.status === 'PENDING').length;
-        this.tabs[1].count = this.all.filter(x => x.status === 'APPROVED').length;
-        this.tabs[2].count = this.all.filter(x => x.status === 'REJECTED').length;
-        this.filter();
+        this.all = r.data?.content ?? r.data ?? [];
+        this.refresh();
       },
       error: () => { this.loading = false; },
       complete: () => { this.loading = false; }
     });
   }
 
-  setTab(key: 'PENDING' | 'APPROVED' | 'REJECTED'): void {
-    this.activeTab = key;
-    this.filter();
+  refresh(): void {
+    this.tabs[0].count = this.all.filter(x => x.statut === 'PENDING').length;
+    this.tabs[1].count = this.all.filter(x => x.statut === 'APPROVED').length;
+    this.tabs[2].count = this.all.filter(x => x.statut === 'REJECTED').length;
+    this.requests = this.all.filter(r => r.statut === this.activeTab);
   }
 
-  private filter(): void {
-    this.displayed = this.all.filter(r => r.status === this.activeTab);
-  }
+  setTab(t: { key: string }): void { this.activeTab = t.key as any; this.refresh(); }
+  openDetail(r: any): void { this.selected = r; this.showPanel = true; }
 
-  openDetail(r: OrganizerRequest): void { this.selected = r; this.showPanel = true; }
-  openReject(r: OrganizerRequest): void { this.selected = r; this.rejectMotif = ''; this.showReject = true; }
-
-  approve(r: OrganizerRequest): void {
-    this.svc.decideOrganizerRequest(r.userId, true, null).subscribe({
-      next: () => { this.toast.show('success', 'Demande approuvée !'); this.showPanel = false; this.load(); },
-      error: (e) => { this.toast.show('error', e.error?.message ?? 'Erreur approbation'); }
+  /**
+   * PATCH /admin/organizer-requests/{userId}/decision
+   * Body: { approved: true, rejectionReason: null }
+   */
+  approve(r: any): void {
+    // Le backend attend l'userId (pas l'id de la demande)
+    const userId = r.userId ?? r.id;
+    this.svc.decideOrganizerRequest(userId, true, null).subscribe({
+      next: () => {
+        this.toast.show('success', `Demande approuvée !`);
+        this.showPanel = false;
+        this.loadAll();
+      },
+      error: () => { this.toast.show('error', "Erreur approbation"); }
     });
   }
 
+  openReject(r: any): void { this.rejectTarget = r; this.rejectMotif = ''; this.showReject = true; }
+
+  /**
+   * PATCH /admin/organizer-requests/{userId}/decision
+   * Body: { approved: false, rejectionReason: "motif" }
+   */
   confirmReject(): void {
-    if (!this.selected || !this.rejectMotif.trim()) { return; }
-    this.svc.decideOrganizerRequest(this.selected.userId, false, this.rejectMotif.trim()).subscribe({
-      next: () => { this.toast.show('info', 'Demande rejetée.'); this.showReject = false; this.showPanel = false; this.load(); },
-      error: (e) => { this.toast.show('error', e.error?.message ?? 'Erreur rejet'); }
+    if (!this.rejectTarget || !this.rejectMotif.trim()) { return; }
+    const userId = this.rejectTarget.userId ?? this.rejectTarget.id;
+    this.svc.decideOrganizerRequest(userId, false, this.rejectMotif).subscribe({
+      next: () => {
+        this.toast.show('info', 'Demande rejetée.');
+        this.showReject = false;
+        this.showPanel = false;
+        this.loadAll();
+      },
+      error: () => { this.toast.show('error', 'Erreur rejet'); }
     });
   }
 
-  initials(name: string): string {
-    return (name || '?').split(' ').map(w => w[0] || '').join('').substring(0, 2).toUpperCase();
-  }
-
-  statusClass(s: string): string {
-    return ({ PENDING: 'badge-warning', APPROVED: 'badge-success', REJECTED: 'badge-danger' } as Record<string,string>)[s] ?? '';
+  docLabel(t: string): string {
+    const m: Record<string, string> = { CNI: 'CNI', RCCM: 'RCCM', REGISTRE_COMMERCE: 'RC', STATUTS: 'Statuts', AUTRE: 'Autre' };
+    return m[t] ?? t;
   }
 }

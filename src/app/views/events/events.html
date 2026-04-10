@@ -1,0 +1,64 @@
+<div class="page-wrap">
+  <div class="page-header"><div><h1>Gestion des Événements</h1><p>Validation, supervision et modération</p></div></div>
+  <div class="ke-tabs">
+    <div *ngFor="let t of tabs" class="tab" [class.active]="activeTab===t.key" (click)="setTab(t.key)">{{ t.label }}</div>
+  </div>
+  <div class="filter-bar">
+    <div class="search-wrap">
+      <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" placeholder="Rechercher un événement…" [(ngModel)]="searchTerm" (input)="page=0;load()">
+    </div>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div *ngIf="loading" class="loading-row">Chargement…</div>
+    <table class="ke-table" *ngIf="!loading">
+      <thead><tr><th>Titre</th><th>Organisateur</th><th>Date</th><th>Capacité</th><th>Billets</th><th>Statut</th><th>Actions</th></tr></thead>
+      <tbody>
+        <tr *ngFor="let e of events">
+          <td><strong>{{ e.titre }}</strong><br><span style="font-size:11px;color:#9CA3AF">{{ e.lieu }}</span></td>
+          <td>{{ e.organisateurNom }}</td>
+          <td>{{ e.date | date:'dd/MM/yyyy' }}</td>
+          <td>{{ e.capacite | number }}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:8px">
+              {{ e.billetsVendus }}
+              <div style="flex:1;height:4px;background:#F1EFE8;border-radius:4px;min-width:50px">
+                <div style="height:4px;border-radius:4px;background:#5B4CF5" [style.width.%]="(e.billetsVendus/e.capacite)*100"></div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <span class="badge" [ngClass]="{'badge-success':e.statut==='VALIDATED','badge-warning':e.statut==='PENDING','badge-danger':e.statut==='REFUSED','badge-gray':e.statut==='CANCELLED'}">
+              {{ e.statut==='VALIDATED'?'Validé':e.statut==='PENDING'?'En attente':e.statut==='REFUSED'?'Refusé':'Annulé' }}
+            </span>
+          </td>
+          <td>
+            <div class="action-btns">
+              <button *ngIf="e.statut==='PENDING'" class="btn btn-sm btn-success" (click)="validate(e)">Valider</button>
+              <button *ngIf="e.statut==='PENDING' || e.statut==='VALIDATED'" class="btn btn-sm btn-danger" (click)="openRefuse(e)">Refuser</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="pagination" style="padding:12px 16px">
+      <span>{{ events.length }} / {{ total }}</span>
+      <div class="page-btns">
+        <button (click)="page=page-1;load()" [disabled]="page===0">‹</button>
+        <button class="active">{{ page+1 }}</button>
+        <button (click)="page=page+1;load()" [disabled]="(page+1)*size>=total">›</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" *ngIf="showRefuse">
+  <div class="modal-box">
+    <div class="modal-header"><h2>Refuser l'événement</h2><button class="modal-close" (click)="showRefuse=false">✕</button></div>
+    <p style="font-size:13px;color:#6B7280;margin-bottom:16px">Vous allez refuser <strong>{{ refuseTarget?.titre }}</strong>. L'organisateur sera notifié sur mobile.</p>
+    <div class="form-group"><label>Motif *</label><textarea [(ngModel)]="refuseMotif" rows="3" placeholder="Ex: Informations incomplètes…"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" (click)="showRefuse=false">Annuler</button>
+      <button class="btn btn-danger" (click)="confirmRefuse()" [disabled]="!refuseMotif.trim()">Confirmer</button>
+    </div>
+  </div>
+</div>
